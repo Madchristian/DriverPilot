@@ -2,7 +2,7 @@
   <PropertyGroup>
     <OutputType>WinExe</OutputType><TargetFramework>net10.0-windows</TargetFramework>
     <UseWPF>true</UseWPF><UseWindowsForms>true</UseWindowsForms><Nullable>enable</Nullable><ImplicitUsings>enable</ImplicitUsings>
-    <AssemblyName>DriverPilot</AssemblyName><Version>0.3.2</Version>
+    <AssemblyName>DriverPilot</AssemblyName><Version>0.3.3</Version>
     <ApplicationManifest>app.manifest</ApplicationManifest>
   </PropertyGroup>
   <ItemGroup><Compile Remove="tests/**/*.cs;release-*/**/*.cs;dist/**/*.cs" /><Content Include="PackageTrust.cs" CopyToOutputDirectory="PreserveNewest" /><Content Include="certificates/DriverPilot.cer" Link="DriverPilot.cer" CopyToOutputDirectory="PreserveNewest" /><Content Include="UPDATE-SECURITY.md" CopyToOutputDirectory="PreserveNewest" /><Content Include="ZERTIFIKAT-ANLEITUNG.txt" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>

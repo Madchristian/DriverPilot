@@ -1,4 +1,6 @@
-# DriverPilot 0.3
+# DriverPilot 0.3.3
+
+Release 0.3.3 sichert App-Updates mit signierten Manifesten und einem fest hinterlegten Herausgeber ab. Migration von veröffentlichten Versionen bis 0.3.2 nur über den unabhängig geprüften signierten Installer. Hinweise und Testgrenzen stehen im Repository unter `RELEASE-0.3.3.md`.
 
 Windows-App für lokale Hardwarediagnose, Geräte-/Treiberüberwachung und konservative Treiberwartung. Für einen selbst zusammengestellten Windows-11-Gaming-PC mit Schwerpunkt Stabilität.
 
@@ -77,11 +79,11 @@ Quellen: https://learn.chatgpt.com/docs/app-server und https://learn.microsoft.c
 
 GitHub Actions baut und testet jeden Push auf `main`, Pull Requests sowie manuell gestartete Läufe. Nur für signierte Läufe steht unter **Actions → Windows build and release** das Artefakt `windows-x64-release` 14 Tage zum Download bereit. Es enthält die Setup-EXE, das portable ZIP und `SHA256SUMS.txt`.
 
-Ein Push eines Versionstags veröffentlicht diese Dateien nach erfolgreichen Tests automatisch als GitHub Release. Beispiel für Version 0.3.1 (muss mit `DriverPilot.csproj` übereinstimmen):
+Ein Push eines Versionstags veröffentlicht diese Dateien nach erfolgreichen Tests automatisch als GitHub Release. Beispiel für Version 0.3.3 (muss mit `DriverPilot.csproj` übereinstimmen):
 
 ```powershell
-git tag v0.3.1
-git push origin v0.3.1
+git tag v0.3.3
+git push origin v0.3.3
 ```
 
 Lokal ohne Schlüssel: `Build.ps1`, `tests/Test-PackageSecurity.ps1` und `Test-Pipeline.ps1` ausführen. Für einen ausdrücklich autorisierten Release: `Build.ps1 -Sign`, danach `Test-Pipeline.ps1` und `Build-Release.ps1 -Sign`. Unsigned Builds sind nur Entwicklungsprogramme, keine installierbaren oder updatefähigen Pakete. Für die Setup-EXE wird Inno Setup 6 benötigt. Der Installationstest läuft ausschließlich auf einer wegwerfbaren GitHub-Windows-Testmaschine. Dort werden Installation, Paketprüfsummen und Wartungsauftrag geprüft; der Auftrag wird anschließend deaktiviert. Der Hersteller-Onlinetest gehört wegen wechselnder externer Quellen nicht zur Release-Pipeline.

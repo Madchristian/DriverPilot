@@ -1,8 +1,25 @@
 $warnings = [System.Collections.Generic.List[string]]::new()
-$os=Get-CimInstance Win32_OperatingSystem
-$cpu=Get-CimInstance Win32_Processor | Select-Object -First 1
-$board=Get-CimInstance Win32_BaseBoard | Select-Object -First 1
-$bios=Get-CimInstance Win32_BIOS | Select-Object -First 1
+function Read-HardwareCim($class) {
+  try { Get-CimInstance $class -ErrorAction Stop | Select-Object -First 1 }
+  catch { $warnings.Add("Hardwareabfrage unvollständig: $class"); $null }
+}
+$os=Read-HardwareCim Win32_OperatingSystem
+$cpu=Read-HardwareCim Win32_Processor
+$board=Read-HardwareCim Win32_BaseBoard
+$bios=Read-HardwareCim Win32_BIOS
+$system=Read-HardwareCim Win32_ComputerSystem
+$enclosure=Read-HardwareCim Win32_SystemEnclosure
+$architecture=[string]$os.OSArchitecture
+# Windows architecture, not the bitness of the PowerShell process.
+try { $architecture=[System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture.ToString() } catch { }
+$biosDate=''
+if($bios.ReleaseDate) { try { $biosDate=([datetime]$bios.ReleaseDate).ToString('yyyy-MM-dd') } catch { $warnings.Add('BIOS-Datum nicht lesbar.') } }
+$hardware=[pscustomobject]@{
+  SystemManufacturer=[string]$system.Manufacturer;SystemModel=[string]$system.Model
+  BoardManufacturer=[string]$board.Manufacturer;BoardModel=[string]$board.Product;BoardRevision=[string]$board.Version
+  BiosVersion=[string]$bios.SMBIOSBIOSVersion;BiosDate=$biosDate;Architecture=$architecture;WindowsBuild=[string]$os.BuildNumber
+  IsPortable=[bool]($system.PCSystemType -eq 2 -or @($enclosure.ChassisTypes | Where-Object {$_ -in @(8,9,10,11,14,30,31,32)}).Count -gt 0)
+}
 $ram=(Get-CimInstance Win32_PhysicalMemory | Measure-Object Capacity -Sum).Sum / 1GB
 $drivers=@{}
 Get-CimInstance Win32_PnPSignedDriver | ForEach-Object { if($_.DeviceID) { $drivers[$_.DeviceID]=$_ } }
@@ -51,4 +68,4 @@ try {
     $findings.Add([pscustomobject]@{Key="event:$($row.Group)";Title="$($e.ProviderName) · Ereignis $($e.Id)";Detail="$($group.Count)x zwischen $($first.ToString('HH:mm')) und $($last.ToString('HH:mm')). $($row.Label) $message";Severity=$(if($group.Count -ge 3 -or $e.Level -le 2){'Warnung'}else{'Info'});Time=$last.ToString('dd.MM.yyyy HH:mm');DeviceRef=$row.Target;Count=$group.Count;FirstSeen=$first.ToString('o');LastSeen=$last.ToString('o')})
   }
 } catch {$warnings.Add("Ereignisprüfung fehlgeschlagen: $($_.Exception.Message)")}
-[pscustomobject]@{Windows="$($os.Caption) · Build $($os.BuildNumber)";Cpu=$cpu.Name.Trim();Board=$board.Product;Bios=$bios.SMBIOSBIOSVersion;RamGB=[math]::Round($ram);Devices=@($devices | Sort-Object Class,Name);Findings=@($findings.ToArray());Warnings=@($warnings.ToArray())} | ConvertTo-Json -Depth 6 -Compress
+[pscustomobject]@{Windows="$($os.Caption) · Build $($os.BuildNumber)";Cpu=([string]$cpu.Name).Trim();Board=[string]$board.Product;Bios=[string]$bios.SMBIOSBIOSVersion;RamGB=[math]::Round($ram);Devices=@($devices | Sort-Object Class,Name);Findings=@($findings.ToArray());Warnings=@($warnings.ToArray());Hardware=$hardware} | ConvertTo-Json -Depth 6 -Compress

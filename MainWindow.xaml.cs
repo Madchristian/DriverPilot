@@ -15,6 +15,9 @@ public partial class MainWindow : Window
     readonly DispatcherTimer timer=new(){Interval=TimeSpan.FromMinutes(2)};
     readonly Forms.NotifyIcon tray=new();
     Snapshot? snapshot;
+    DateTimeOffset? reportScanAt;
+    readonly ReportScanContext reportContext = new();
+    SystemReportWindow? reportWindow;
     bool ready,busy,updateBusy,manufacturerBusy,exit;
     string chatPrefix="";
     DateTime lastUpdates=DateTime.MinValue;
@@ -34,7 +37,7 @@ public partial class MainWindow : Window
         InitializeFeatures();
         ready=true;
     }
-    public async Task InitializeAsync(){await Scan();RefreshWorker();RenderManufacturers(Store.Read<ManufacturerReport>("manufacturers.json"));}
+    public async Task InitializeAsync(){await Scan();RefreshWorker();}
     void ShowApp(){Show();WindowState=WindowState.Normal;Activate();}
     void OnClosing(object? sender,CancelEventArgs e){if(!exit){e.Cancel=true;Hide();return;}timer.Stop();tray.Dispose();codex.Dispose();System.Windows.Application.Current.Shutdown();}
     void Navigate(object sender,RoutedEventArgs e)
@@ -46,12 +49,26 @@ public partial class MainWindow : Window
         string[] subtitles=["Hardware, Treiber und Windows-Meldungen an einem Ort.","Aktuell erkannte Geräte und installierte Treiberversionen.","Windows-Befunde verstehen und gezielt verfolgen.","Passende Pakete suchen. Stabilität vor Versionsnummern.","Befunde erklären lassen und nächste Schritte abwägen.","Lokale Prüfungen und Wartung nachvollziehen.","Deine Regeln gelten auch im Hintergrund.","Offizielle Quellen für Treiber, BIOS und SSD-Firmware.","Zusätzliche Befunde nach einem Versionswechsel.","Sicherungen und unterstützte manuelle Rückwege.","Zeitfenster, Aktivitätsschutz und Ausnahmen.","Werkzeugaufrufe und ihre tatsächlichen Ergebnisse."];
         if(index>=8)RefreshExtra(index);
         PageTitle.Text=titles[index];PageSubtitle.Text=subtitles[index];
-        if(index==5)RefreshHistory();if(index==3)RefreshWorker();if(index==7)RenderManufacturers(Store.Read<ManufacturerReport>("manufacturers.json"));
+        if(index==5)RefreshHistory();if(index==3)RefreshWorker();
     }
     async void ScanClick(object sender,RoutedEventArgs e)=>await Scan();
+    void SystemReportClick(object sender,RoutedEventArgs e)
+    {
+        if(busy || !SystemReportSession.IsFresh(snapshot, reportScanAt, DateTimeOffset.UtcNow))
+        { StatusLine.Text="Für den Systembericht zuerst erfolgreich 'Jetzt prüfen' ausführen (maximal 15 Minuten alt).";return; }
+        try
+        {
+            // No persisted manufacturer report enters this sharing flow.
+            reportWindow=new SystemReportWindow(snapshot!,reportScanAt!.Value,reportContext.SummaryFor(snapshot!,DateTimeOffset.UtcNow)){Owner=this};
+            reportWindow.ShowDialog();
+        }
+        finally { reportWindow=null; }
+    }
     async Task Scan(bool manual=true)
     {
-        if(busy)return;busy=true;ScanButton.IsEnabled=false;StatusLine.Text="Geräte und Windows-Ereignisse werden geprüft …";
+        if(busy||reportWindow!=null)return;busy=true;reportScanAt=null;SystemReportButton.IsEnabled=false;ScanButton.IsEnabled=false;StatusLine.Text="Geräte und Windows-Ereignisse werden geprüft …";
+        var generation=reportContext.BeginScan();
+        ManufacturerList.ItemsSource=null;ManufacturerStatus.Text="Für diesen Scan noch keine Herstellerprüfung abgeschlossen.";
         try
         {
             var data=await PowerShell.Run("Inventory");var next=JsonSerializer.Deserialize<Snapshot>(data,Store.Json)??throw new Exception("Windows hat keine Gerätedaten geliefert.");
@@ -76,9 +93,11 @@ public partial class MainWindow : Window
             Store.Save("preferences.json",preferences);RenderSnapshot();
             if(manual)Store.Log("Systemprüfung",$"{next.Devices.Count} Geräte, {next.Findings.Count} Hinweise.");
             StatusLine.Text="Letzte Prüfung: "+DateTime.Now.ToString("HH:mm")+" · "+(next.Warnings.Count==0?"Gerätestatus und Ereignisse gelesen.":string.Join(" · ",next.Warnings));
+            reportScanAt=DateTimeOffset.UtcNow;
+            reportContext.CompleteScan(generation, snapshot, reportScanAt.Value);
         }
         catch(Exception ex){StatusLine.Text="Prüfung fehlgeschlagen: "+ex.Message;Store.Log("Prüffehler",ex.Message);}
-        finally{busy=false;ScanButton.IsEnabled=true;}
+        finally{busy=false;ScanButton.IsEnabled=true;SystemReportButton.IsEnabled=SystemReportSession.IsFresh(snapshot,reportScanAt,DateTimeOffset.UtcNow);}
     }
     void RenderSnapshot()
     {
@@ -107,16 +126,28 @@ public partial class MainWindow : Window
     async void ManufacturersClick(object sender,RoutedEventArgs e)=>await SearchManufacturers();
     async Task SearchManufacturers()
     {
-        if(manufacturerBusy||snapshot==null)return;manufacturerBusy=true;ManufacturerButton.IsEnabled=false;ManufacturerStatus.Text="Installierte Firmware erfassen und offizielle Herstellerquellen prüfen …";
+        if(manufacturerBusy||busy||reportWindow!=null||snapshot==null)return;
+        var scan=snapshot;var generation=reportContext.Generation;
+        reportContext.ClearManufacturers();
+        manufacturerBusy=true;ManufacturerButton.IsEnabled=false;ManufacturerStatus.Text="Installierte Firmware erfassen und offizielle Herstellerquellen prüfen …";
         try
         {
-            var report=await ManufacturerScanner.Scan(snapshot);RenderManufacturers(report);
+            var report=await ManufacturerScanner.Scan(scan, persist: false);
+            if(!reportContext.PublishManufacturers(generation, scan, report, DateTimeOffset.UtcNow,
+                accepted=>Store.Save("manufacturers.json",accepted), RenderManufacturers))
+            {ManufacturerStatus.Text="Herstellersuche abgeschlossen, Ergebnis wegen geändertem Systemscan verworfen. Bitte erneut suchen.";return;}
             var updates=report.Findings.Where(f=>f.Newer).ToList();
             var newUpdates=updates.Where(f=>preferences.ManufacturerNotified.Add(f.Device+":"+f.Available)).ToList();
             if(preferences.Notify&&newUpdates.Count>0)tray.ShowBalloonTip(8000,"DriverPilot · Herstellerupdates",$"{newUpdates.Count} neue Versionshinweise. Details unter Hersteller & Firmware. Es wurde nichts installiert.",Forms.ToolTipIcon.Info);
             Store.Save("preferences.json",preferences);Store.Log("Herstellersuche",$"{report.Findings.Count} Einträge, {updates.Count} neuere Versionen; Firmware-/BIOS-Prüfung siehe Einzelstatus.");
         }
-        catch(Exception ex){lastManufacturers=DateTime.Now.AddHours(-23);ManufacturerStatus.Text="Herstellersuche fehlgeschlagen: "+ex.Message;}
+        catch(Exception ex)
+        {
+            if(!reportContext.IsGenerationCurrent(generation, scan))
+            {ManufacturerStatus.Text="Herstellersuche fehlgeschlagen; Ergebnis wegen geändertem Systemscan verworfen. Bitte erneut suchen.";return;}
+            reportContext.ClearManufacturers();
+            lastManufacturers=DateTime.Now.AddHours(-23);ManufacturerStatus.Text="Herstellersuche fehlgeschlagen: "+ex.Message;
+        }
         finally{manufacturerBusy=false;ManufacturerButton.IsEnabled=true;}
     }
     void RenderManufacturers(ManufacturerReport? report)

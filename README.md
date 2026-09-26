@@ -27,6 +27,22 @@ Die erste Installation erfolgt ausschließlich über den unabhängig geprüften,
 
 ## Hersteller & Firmware
 
+### In Entwicklung: fremde PCs und Systembericht
+
+Der Arbeitsstand erweitert die Hardwareerfassung um Systemhersteller/-modell, Mainboardhersteller/-modell/-revision, BIOS-Datum, Architektur und Windows-Build. ASUS, MSI, Gigabyte, ASRock, Dell, HP, Lenovo und Acer werden über gemeinsame Herstelleradapter zugeordnet. Bei OEM-Rechnern und Notebooks hat der Systemhersteller Vorrang. Unbekannte oder unvollständige Zuordnungen bleiben ausdrücklich offen.
+
+Neue Herstellerwege sind **manuelle offizielle Portale**, keine zugesagte modellgenaue Unterstützung. Es liegen noch keine bestätigten ASUS-/Freundes-Konfigurationen vor. Der bekannte MSI-/X670E-Pfad bleibt eng an die verifizierte Modellzuordnung gebunden; automatische Windows-11-Paketvergleiche setzen eine bestätigte x64-/Windows-11-Identität voraus. BIOS und Firmware werden nicht geflasht.
+
+Unter **Hardware & Treiber → Systembericht teilen** lässt sich nach einem erfolgreichen frischen Scan eine lokale Vorschau öffnen. Der Bericht enthält ausschließlich ausgewählte strukturierte Hardwarefelder, App-/Windows-Version, relevante Geräteklassen mit bereinigten PCI-/USB-Modellkennungen und optionalen Benutzerangaben. GPU-Zuordnung erfolgt über die Modellkennung statt über frei formulierte Gerätenamen. Rohe Ereignisse, Chat, Einstellungen und vollständige Geräteinstanz-IDs werden nicht exportiert. Die Filter sind konservative Heuristiken, keine Garantie perfekter Anonymität: Vorschau und eigene Angaben vor dem Teilen vollständig prüfen.
+
+- **Lokal speichern** funktioniert ohne Netzwerk und GitHub-Konto. Die Datei enthält exakt den Vorschautext; der Speicherort wird ausgewählt.
+- **GitHub-Entwurf öffnen** erfordert eine bewusste Zustimmung und öffnet nur einen vorausgefüllten Browserentwurf. Das Repository ist privat; GitHub-Konto und Zugriff sind erforderlich. Das Issue veröffentlicht der Nutzer selbst.
+- Bereits die Entwurfs-URL übermittelt den Bericht an Browser/GitHub und kann im Browserverlauf stehen. Kein automatischer Upload, eingebauter Token oder Clipboard-Zugriff.
+- Entwurfs-URLs über 2.000 Zeichen werden nicht geöffnet oder abgeschnitten. In diesem Fall die vollständige Datei speichern und bewusst manuell weitergeben.
+- Fehlende, fehlgeschlagene oder über 15 Minuten alte Scans müssen erneuert werden. Herstellerprüfungen werden nicht aus fremden/veralteten gespeicherten Berichten übernommen.
+
+Die Funktion ersetzt nicht den umfassenderen Diagnoseexport mit begrenzten Protokollen aus Issue #7. Echte Freundesprofile und deren praktische Abnahme bleiben für Issue #10 erforderlich. Dieser Arbeitsstand ist noch kein veröffentlichtes Release.
+
 Der zusätzliche Bereich prüft unterstützte offizielle Herstellerquellen täglich, solange die Überwachung im Infobereich läuft, oder über „Herstellerquellen prüfen“. Codex kann dieselbe Prüfung mit `driverpilot_manufacturer_updates` aufrufen. Hardwaremodelle werden lokal erkannt; keine Seriennummern werden benötigt.
 
 - **AMD X670E:** vergleicht das offizielle Chipsatzpaket mit der tatsächlich installierten Paketversion aus der Windows-Programmliste. Einzelne Chipsatztreiberversionen werden nicht mit der Paketversion vermischt.
@@ -67,6 +83,8 @@ Voraussetzung: .NET SDK 10, Windows. Ein lokales SDK liegt für diese Entwicklun
 
 ```
 dotnet build -c Release
+dotnet run --project tests/HardwareRouting/HardwareRouting.csproj
+dotnet run --project tests/SystemReport/SystemReport.csproj -- --integration --ui
 powershell -NoProfile -ExecutionPolicy Bypass -File .\Build.ps1
 ```
 

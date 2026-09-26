@@ -27,7 +27,7 @@ $originalRelease=$release
 $testRoot=if($env:TMPDIR){$env:TMPDIR}else{[IO.Path]::GetTempPath()}
 $release=Join-Path $testRoot ('DriverPilot-app-tests-'+[guid]::NewGuid().ToString('N'))
 Copy-Item -LiteralPath $originalRelease -Destination $release -Recurse
-foreach($mode in @('self','transport')){
+foreach($mode in @('self','transport','system-report')){
  $p=Start-Process -FilePath (Join-Path $release 'DriverPilot.exe') -ArgumentList "--$mode-test" -PassThru -WindowStyle Hidden
  if(-not $p.WaitForExit(240000)){$p.Kill();throw "$mode-Test hat das Zeitlimit überschritten."}
  if($p.ExitCode -ne 0){Get-ChildItem -LiteralPath $release -Filter '*failure.txt' | ForEach-Object {Get-Content -LiteralPath $_.FullName};throw "$mode-Test fehlgeschlagen: $($p.ExitCode)"}

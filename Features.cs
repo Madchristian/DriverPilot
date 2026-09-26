@@ -95,8 +95,10 @@ public partial class MainWindow
         if((sender as Button)?.DataContext is not ManufacturerFinding f)return;
         var panel=new StackPanel{Margin=new Thickness(24)};var win=new Window{Owner=this,Title="Herstellerprüfung · "+f.Device,Width=700,Height=670,Background=Background,Content=new ScrollViewer{Content=panel,VerticalScrollBarVisibility=ScrollBarVisibility.Auto},WindowStartupLocation=WindowStartupLocation.CenterOwner};
         panel.Children.Add(Text(f.Device,22));panel.Children.Add(Text("Lokal installiert: "+f.Installed));panel.Children.Add(Text("Herstellerstand: "+f.Available+" · "+f.Status));panel.Children.Add(Text(f.Details));
-        panel.Children.Add(Action("Offizielle Produktquelle öffnen ↗",(_,_)=>{if(ManufacturerScanner.OfficialUrl(f.SourceUrl))Open(f.SourceUrl);}));
-        if(f.Category.Contains("BIOS"))panel.Children.Add(Action("MSI-Anleitung für BIOS-Updates ↗",(_,_)=>Open("https://www.msi.com/support/technical_details/MB_BIOS_Update")));
+        if(ManufacturerScanner.OfficialUrl(f.SourceUrl))panel.Children.Add(Action("Offizielle Produktquelle öffnen ↗",(_,_)=>{if(ManufacturerScanner.OfficialUrl(f.SourceUrl))Open(f.SourceUrl);}));
+        else panel.Children.Add(Text("Keine verifizierte Herstellerquelle zugeordnet. Exaktes Modell und Hersteller zuerst manuell klären."));
+        var guide=ManufacturerScanner.BiosGuideUrl(f);
+        if(guide.Length>0)panel.Children.Add(Action("BIOS-Anleitung beim zuständigen Hersteller prüfen ↗",(_,_)=>{if(ManufacturerScanner.OfficialUrl(guide))Open(guide);}));
         panel.Children.Add(Text("Vor einer manuellen Aktualisierung",18));
         foreach(var label in new[]{"Exaktes Modell und gegebenenfalls Hardware-Revision abgeglichen","Herstellerhinweise, bekannte Einschränkungen und Rückweg gelesen","Wichtige Daten gesichert; bei Verschlüsselung Wiederherstellungsschlüssel verfügbar","Stabile Stromversorgung und Zeit für den manuellen Neustart vorhanden"})panel.Children.Add(new CheckBox{Content=new TextBlock{Text=label,TextWrapping=TextWrapping.Wrap}});
         panel.Children.Add(Text("Manuell geprüfte Version / Datum / Ergebnis (deine Notiz, kein automatischer Nachweis):"));

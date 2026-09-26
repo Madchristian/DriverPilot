@@ -39,6 +39,12 @@ jobs:
       - name: Adversarial package tests (ephemeral keys, no production bypass)
         run: |
           ./tests/Test-PackageSecurity.ps1
+      - name: Offline hardware routing and sharing regressions
+        run: |
+          dotnet run --project tests/HardwareRouting/HardwareRouting.csproj
+          if($LASTEXITCODE -ne 0){throw 'Hardware routing tests failed.'}
+          dotnet run --project tests/SystemReport/SystemReport.csproj -- --integration
+          if($LASTEXITCODE -ne 0){throw 'System report tests failed.'}
       - name: Import private release signing key
         if: env.DRIVERPILOT_SIGN_RELEASE == 'true'
         env:

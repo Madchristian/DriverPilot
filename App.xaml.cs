@@ -6,6 +6,26 @@ public partial class App : System.Windows.Application
     private Mutex? single;
     protected override async void OnStartup(StartupEventArgs e)
     {
+        // Isolated synthetic path: before base startup, mutex, Store, tray, timers or scans.
+        if(e.Args.Contains("--system-report-test"))
+        {
+            ShutdownMode=ShutdownMode.OnExplicitShutdown;
+            var output=AppContext.BaseDirectory;
+            var index=Array.IndexOf(e.Args,"--system-report-output");
+            if(index>=0 && index+1<e.Args.Length)output=Path.GetFullPath(e.Args[index+1]);
+            try
+            {
+                Directory.CreateDirectory(output);
+                var result=SystemReportTests.RunBackend()+"\n"+await SystemReportTests.RunUi(output);
+                File.WriteAllText(Path.Combine(output,"system-report-test-results.txt"),result);Shutdown(0);
+            }
+            catch(Exception ex)
+            {
+                try{File.WriteAllText(Path.Combine(output,"system-report-test-failure.txt"),ex.ToString());}catch{}
+                Shutdown(1);
+            }
+            return;
+        }
         base.OnStartup(e);
         if(e.Args.Length==2 && e.Args[0]=="--wait-for" && int.TryParse(e.Args[1],out var previousPid))
         {try{using var old=System.Diagnostics.Process.GetProcessById(previousPid);await old.WaitForExitAsync().WaitAsync(TimeSpan.FromSeconds(20));}catch(ArgumentException){}catch{Shutdown(1);return;}}

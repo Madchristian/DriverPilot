@@ -1,0 +1,13 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/DriverPilot/DriverPilot.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/HardwareRouting/HardwareRouting.csproj" />
+    <Project Path="tests/PackageSecurity/PackageSecurity.csproj" />
+    <Project Path="tests/SystemReport/SystemReport.csproj" />
+  </Folder>
+  <Folder Name="/tests/AppIcon/">
+    <Project Path="tests/AppIcon/AppIcon.Tests.csproj" />
+  </Folder>
+</Solution>

@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType><TargetFramework>net10.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF><UseWindowsForms>true</UseWindowsForms><Nullable>enable</Nullable><ImplicitUsings>enable</ImplicitUsings>
+    <AssemblyName>DriverPilot</AssemblyName><RootNamespace>DriverPilot</RootNamespace><Version>0.3.4</Version>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>../../assets/branding/DriverPilot.ico</ApplicationIcon>
+
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- Keep isolated test command modes in the shipped application. -->
+    <Compile Include="../../tests/InApp/*.cs" Link="Tests/%(Filename)%(Extension)" />
+    <!-- Preserve flat runtime/package paths after repository restructuring. -->
+    <Content Include="Security/PackageTrust.cs" Link="PackageTrust.cs" TargetPath="PackageTrust.cs" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="../../assets/certificates/DriverPilot.cer" Link="DriverPilot.cer" TargetPath="DriverPilot.cer" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="../../docs/security/UPDATE-SECURITY.md" Link="UPDATE-SECURITY.md" TargetPath="UPDATE-SECURITY.md" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="../../docs/security/ZERTIFIKAT-ANLEITUNG.txt" Link="ZERTIFIKAT-ANLEITUNG.txt" TargetPath="ZERTIFIKAT-ANLEITUNG.txt" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="../../installer/Setup.ps1" Link="Setup.ps1" TargetPath="Setup.ps1" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="../../README.md" Link="README.md" TargetPath="README.md" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="../../assets/branding/DriverPilot.ico" LogicalName="DriverPilot.Assets.DriverPilot.ico" />
+  </ItemGroup>
+  <ItemGroup><EmbeddedResource Include="Scripts/*.ps1" LogicalName="DriverPilot.Scripts.%(Filename)%(Extension)" /></ItemGroup>
+</Project>

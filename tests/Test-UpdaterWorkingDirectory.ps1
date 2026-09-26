@@ -2,8 +2,8 @@ $ErrorActionPreference='Stop'
 $root=Split-Path $PSScriptRoot -Parent
 # Execute the real launch initializers without the GUI, package verification or UAC.
 # Only the elevation verb is cleared below; both ShellExecute modes remain intact.
-$features=[IO.File]::ReadAllText((Join-Path $root 'Features.cs'))
-$window=[IO.File]::ReadAllText((Join-Path $root 'MainWindow.xaml.cs'))
+$features=[IO.File]::ReadAllText((Join-Path $root 'src/DriverPilot/UI/Features.cs'))
+$window=[IO.File]::ReadAllText((Join-Path $root 'src/DriverPilot/UI/MainWindow.xaml.cs'))
 $updater=[regex]::Match($features,'var script=Path.Combine\(AppContext.BaseDirectory,"Setup.ps1"\);var psi=(new ProcessStartInfo\([^;]+);').Groups[1].Value
 $helper=[regex]::Match($features,'var helper=(new ProcessStartInfo\([^;]+);').Groups[1].Value
 $configure=[regex]::Match($window,'var psi=(new ProcessStartInfo\(Path.Combine\(Environment.GetFolderPath\(Environment.SpecialFolder.System\)[^;]+);').Groups[1].Value
@@ -19,7 +19,7 @@ public static class UpdaterLaunchProbe {
 }
 "@
 $tokens=$null;$errors=$null
-$ast=[Management.Automation.Language.Parser]::ParseFile((Join-Path $root 'Setup.ps1'),[ref]$tokens,[ref]$errors)
+$ast=[Management.Automation.Language.Parser]::ParseFile((Join-Path $root 'installer/Setup.ps1'),[ref]$tokens,[ref]$errors)
 if($errors){throw ($errors|Out-String)}
 # Never execute the installer body, change ACLs, tasks, registry or certificate stores.
 foreach($f in $ast.FindAll({param($n) $n -is [Management.Automation.Language.FunctionDefinitionAst]},$false)){Invoke-Expression $f.Extent.Text}

@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType><TargetFramework>net10.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF><UseWindowsForms>true</UseWindowsForms><Nullable>enable</Nullable><ImplicitUsings>enable</ImplicitUsings>
+    <AssemblyName>DriverPilot</AssemblyName><Version>0.3.0</Version>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+  </PropertyGroup>
+  <ItemGroup><EmbeddedResource Include="Scripts\*.ps1" /><Content Include="Setup.ps1" CopyToOutputDirectory="PreserveNewest"/><Content Include="README.md" CopyToOutputDirectory="PreserveNewest"/></ItemGroup>
+</Project>

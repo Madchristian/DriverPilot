@@ -12,3 +12,11 @@ Verbindlich: Windows-Neustarts nur durch den Benutzer; BIOS, Firmware und Speich
 8. Auslieferung: private GitHub-Ablage, reproduzierbare Build-/Prüfanleitung, Regressionstests und Windows-Installation.
 
 Prüfung: Policy-Grenzfälle ohne Treiberinstallation, Vergleichslogik, UTF-8-Transport, echte schreibgeschützte Hardwareabfragen, Herstellerquellen und WPF-Ansichten. Installation echter Treiber/BIOS ist kein Testschritt.
+
+## Abschlussstand 26.09.2026
+
+Alle acht Arbeitsbereiche sind in Version 0.3.0 umgesetzt. Die geschützte Windows-Installation wurde aktualisiert und der tägliche Auftrag auf ein 30-Minuten-Intervall über den ganzen Tag umgestellt; die tatsächlichen Installationen bleiben an die benutzerdefinierten Regeln gebunden. Standard bleibt Sonntag 12–17 Uhr.
+
+Herstellererweiterungen ohne maschinenlesbaren Versionskatalog sind bewusst manuelle Portale/Assistenten. Wiederherstellung nutzt die von Windows angebotenen manuellen Rückwege. App-Updates benötigen derzeit ein heruntergeladenes, entpacktes Paket und die Windows-Administratorfreigabe. Die automatische Suche nach Treibern ist davon unabhängig.
+
+Tests und verbleibende Grenzen: [VALIDATION-0.3.md](VALIDATION-0.3.md).

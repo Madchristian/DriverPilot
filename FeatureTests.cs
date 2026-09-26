@@ -17,24 +17,7 @@ public static class FeatureTests
         if(rows[0].Evidence.Count!=1)throw new Exception("Duplicate observation evidence.");
         var expired=Stability.Compare(fresh,fresh with{Findings=[oldEvent with{LastSeen=now.AddHours(26)}]},rows,now.AddHours(26));
         if(expired[0].Evidence.Count!=1)throw new Exception("Expired observation changed.");
-        var packageStatus="Package checks skipped (no manifest in build directory).";
-        if(File.Exists(Path.Combine(AppContext.BaseDirectory,"package-manifest.json")))
-        {
-            var m=PackageVerifier.Verify(AppContext.BaseDirectory,false);
-            void Reject(PackageManifest candidate,string expected,bool newer=false){
-                try{PackageVerifier.Validate(AppContext.BaseDirectory,candidate,newer);}
-                catch(Exception ex) when(ex.Message.Contains(expected)){return;}
-                throw new Exception("Invalid package accepted: "+expected);
-            }
-            var badHash=new Dictionary<string,string>(m.Files);badHash[badHash.Keys.First()]=new string('0',64);
-            Reject(m with{Files=badHash},"Prüfsumme");
-            var traversal=new Dictionary<string,string>{{"../outside.dll",new string('0',64)}};foreach(var pair in m.Files)traversal[pair.Key]=pair.Value;
-            Reject(m with{Files=traversal},"Paketpfad");
-            Reject(m with{Files=[]},"gültiges");
-            Reject(m with{Product="AnotherProduct"},"gültiges");
-            Reject(m,"nicht neuer",true);
-            packageStatus="Package: real hashes, tampering, traversal, empty manifest, wrong product and same-version rejection passed.";
-        }
+        var packageStatus="Authenticated package adversarial tests run separately via tests/PackageSecurity and tests/Test-Updater.ps1.";
         return "Stability: version change, pre-existing events, repeated new events, deduplication, 24h expiry passed. "+packageStatus;
     }
 }

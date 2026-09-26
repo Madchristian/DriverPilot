@@ -147,9 +147,10 @@ public partial class MainWindow : Window
     {
         try
         {
+            Security.PackageTrust.AssertInstalledUpdater(AppContext.BaseDirectory);
             var script=Path.Combine(AppContext.BaseDirectory,"Setup.ps1");
             if(!File.Exists(script))throw new Exception("Setup.ps1 fehlt im Programmordner.");
-            var psi=new ProcessStartInfo(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.System),"WindowsPowerShell","v1.0","powershell.exe")){UseShellExecute=true,Verb="runas",WindowStyle=ProcessWindowStyle.Hidden};
+            var psi=new ProcessStartInfo(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.System),"WindowsPowerShell","v1.0","powershell.exe")){UseShellExecute=true,Verb="runas",WindowStyle=ProcessWindowStyle.Hidden,WorkingDirectory=Environment.GetFolderPath(Environment.SpecialFolder.System)};
             psi.Arguments=$"-NoProfile -ExecutionPolicy Bypass -File \"{script}\""+(disable?" -Disable":"");
             using var p=Process.Start(psi)!;await p.WaitForExitAsync();
             if(p.ExitCode!=0)throw new Exception("Windows-Einrichtung wurde nicht abgeschlossen (Code "+p.ExitCode+").");

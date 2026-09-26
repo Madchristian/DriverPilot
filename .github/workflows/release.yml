@@ -36,6 +36,9 @@ jobs:
       - uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4
         with:
           dotnet-version: '10.0.x'
+      - name: Adversarial package tests (ephemeral keys, no production bypass)
+        run: |
+          ./tests/Test-PackageSecurity.ps1
       - name: Import private release signing key
         if: env.DRIVERPILOT_SIGN_RELEASE == 'true'
         env:
@@ -47,16 +50,19 @@ jobs:
       - name: Run application and transport tests
         run: ./Test-Pipeline.ps1
       - name: Package installer and ZIP
+        if: env.DRIVERPILOT_SIGN_RELEASE == 'true'
         run: ./Build-Release.ps1 -Sign:($env:DRIVERPILOT_SIGN_RELEASE -eq 'true')
       - name: Verify signatures and reject tampering
         if: env.DRIVERPILOT_SIGN_RELEASE == 'true'
         run: ./Test-Signing.ps1
       - name: Test installation on disposable runner
+        if: env.DRIVERPILOT_SIGN_RELEASE == 'true'
         run: ./Test-Pipeline.ps1 -Installer
       - name: Remove runner signing key and temporary trust
         if: always() && env.DRIVERPILOT_SIGN_RELEASE == 'true'
         run: ./Remove-CISigning.ps1
       - name: Upload release files
+        if: env.DRIVERPILOT_SIGN_RELEASE == 'true'
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: windows-x64-release

@@ -75,6 +75,19 @@ Quellen: https://learn.chatgpt.com/docs/app-server und https://learn.microsoft.c
 
 ## Repository und Release
 
+GitHub Actions baut und testet jeden Push auf `main`, Pull Requests sowie manuell gestartete Läufe. Unter **Actions → Windows build and release** steht das Artefakt `windows-x64-release` 14 Tage zum Download bereit. Es enthält die Setup-EXE, das portable ZIP und `SHA256SUMS.txt`.
+
+Ein Push eines Versionstags veröffentlicht diese Dateien nach erfolgreichen Tests automatisch als GitHub Release. Beispiel für Version 0.3.1 (muss mit `DriverPilot.csproj` übereinstimmen):
+
+```powershell
+git tag v0.3.1
+git push origin v0.3.1
+```
+
+Lokal: zuerst `Build.ps1`, danach `Test-Pipeline.ps1` und `Build-Release.ps1` ausführen. Für die Setup-EXE wird Inno Setup 6 benötigt. Der Installationstest läuft ausschließlich auf einer wegwerfbaren GitHub-Windows-Testmaschine. Dort werden Installation, Paketprüfsummen und Wartungsauftrag geprüft; der Auftrag wird anschließend deaktiviert. Der Hersteller-Onlinetest gehört wegen wechselnder externer Quellen nicht zur Release-Pipeline.
+
+Die Setup-EXE installiert DriverPilot und richtet die Automatik ein. ZIP entpacken und `DriverPilot.exe` starten ermöglicht den portablen Einstieg. Die Dateien sind derzeit nicht mit einem Codesigning-Zertifikat signiert.
+
 Privat: https://github.com/Madchristian/DriverPilot . Quellcode und Dokumentation werden versioniert. Lokale SDKs, Buildordner, Diagnose-Snapshots, Authentifizierungsdaten und persönliche App-Einstellungen gehören nicht ins Repository. Das Release-ZIP enthält nur die Paketmanifest-Dateien und README; keine lokalen Testergebnisse oder Hardwarebilder.
 
 `Build.ps1` erstellt das selbstständige Windows-x64-Paket inklusive SHA-256-Manifest. Danach die EXE mit `--self-test`, `--transport-test` und `--manufacturer-test` ausführen. Die Tests prüfen lokal und teilweise online, installieren aber keine Treiber. Reale Treiberinstallationen, Rollbacks und BIOS-/Firmwareupdates wurden nicht zu Testzwecken durchgeführt.

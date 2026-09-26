@@ -7,3 +7,4 @@ research/
 schema/
 *.tmp
 *.zip
+dist/

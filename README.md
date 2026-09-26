@@ -88,7 +88,7 @@ Lokal: zuerst `Build.ps1`, danach `Test-Pipeline.ps1` und `Build-Release.ps1` au
 
 Die Setup-EXE installiert DriverPilot und richtet die Automatik ein. ZIP entpacken und `DriverPilot.exe` starten ermöglicht den portablen Einstieg.
 
-Ab 0.3.2 werden Versionstag-Releases mit dem privaten Codesigning-Zertifikat **DriverPilot (Christian)** signiert: Programm-EXE, eigene DLL, Setup-Skript und Setup-EXE erhalten SHA-256-Signaturen und Zeitstempel. Erst danach entstehen Paketmanifest und Release-Prüfsummen. Die Pipeline prüft Signaturen und weist manipulierte Testkopien zurück.
+Ab 0.3.2 werden Versionstag-Releases mit dem privaten Codesigning-Zertifikat **Christian Strube** signiert: Programm-EXE, eigene DLL, Setup-Skript und Setup-EXE erhalten SHA-256-Signaturen und Zeitstempel. Erst danach entstehen Paketmanifest und Release-Prüfsummen. Die Pipeline prüft Signaturen und weist manipulierte Testkopien zurück.
 
 **Für Freunde:** `DriverPilot.cer` und [ZERTIFIKAT-ANLEITUNG.txt](ZERTIFIKAT-ANLEITUNG.txt) liegen sowohl im Release als auch im ZIP. Den Zertifikat-Fingerabdruck direkt mit Christian abgleichen, bevor Vertrauen eingerichtet wird. Das Setup importiert keine Zertifikate. Selbstsignierung beseitigt nicht automatisch SmartScreen-Warnungen oder Smart-App-Control-Blockaden. Das private Repository erfordert auch zum Download der Releases eine Zugriffsberechtigung.
 

@@ -1,12 +1,12 @@
 DriverPilot - privates Zertifikat fuer Freunde
 =============================================
 
-Herausgeber: DriverPilot (Christian)
+Herausgeber: Christian Strube
 Eigenes Zertifikat, keine Identitaetspruefung durch eine Zertifizierungsstelle.
 Gueltig bis 26.09.2029. Das Zertifikat enthaelt KEINEN privaten Schluessel.
 
 SHA-256-Fingerabdruck der Datei DriverPilot.cer:
-BE4FEB7E3BC96219E874B8F82AD722AFB3039C5116B1561DED2E2E7EE5ABF713
+2C9F679EA51A77CDBC9D64E171B6C12FC9E31EBE623C8C6E357CDE5B6C9F929B
 
 1. Dateien aus Christians Release herunterladen. Das Repository ist privat;
    du brauchst Zugriff oder bekommst die Dateien direkt von Christian.
@@ -33,7 +33,7 @@ BE4FEB7E3BC96219E874B8F82AD722AFB3039C5116B1561DED2E2E7EE5ABF713
    Das Zertifikat ist auf Codesignierung beschraenkt (keine TLS-Webzertifikate).
 
 5. Setup-EXE rechtsklicken -> Eigenschaften -> Digitale Signaturen
-   -> DriverPilot (Christian) -> Details.
+   -> Christian Strube -> Details.
    Windows muss die digitale Signatur als gueltig anzeigen.
    Danach Setup starten. Fuer portable Nutzung ZIP entpacken und die
    Signatur von DriverPilot.exe genauso pruefen.
@@ -49,9 +49,9 @@ Grenzen:
 
 Vertrauen spaeter entfernen:
 certlm.msc oeffnen -> Vertrauenswuerdige Stammzertifizierungsstellen
--> Zertifikate -> ausschliesslich DriverPilot (Christian) mit diesem
+-> Zertifikate -> ausschliesslich Christian Strube mit diesem
 SHA-1-Zertifikatfingerabdruck loeschen:
-49CADF8392848EAB692047394783347F50189D32
+8C1B45FCCC089BF2A4393EEF38827B5D0BBF9775
 Der SHA-1-Wert identifiziert den Windows-Speichereintrag; signiert wird mit SHA-256.
 Selbst ausgestellte Zertifikate haben hier keinen zentralen Widerrufsdienst.
 

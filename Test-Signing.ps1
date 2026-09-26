@@ -4,6 +4,8 @@ $ErrorActionPreference='Stop'
 [xml]$project=Get-Content -LiteralPath (Join-Path $PSScriptRoot 'DriverPilot.csproj')
 $version=[string]$project.Project.PropertyGroup.Version
 $release=Join-Path $PSScriptRoot "release-$version"
+Add-Type -Path (Join-Path $PSScriptRoot 'PackageTrust.cs')
+$package=[DriverPilot.Security.PackageTrust]::Verify($release,(Join-Path $PSScriptRoot 'certificates\DriverPilot.cer'),'0.0.0',$false)
 $names=@('DriverPilot.exe','DriverPilot.dll','Setup.ps1')
 foreach($name in $names){Assert-DriverPilotSignature (Join-Path $release $name)}
 $public=Get-DriverPilotCertificate
@@ -29,7 +31,11 @@ if(-not $ApplicationOnly){
  $zip=[IO.Compression.ZipFile]::OpenRead((Join-Path $dist "DriverPilot-$version-win-x64.zip"))
  try {
   if(@($zip.Entries | Where-Object {$_.FullName -match '\.(pfx|p12|key)$'}).Count){throw 'Privater Schluessel im ZIP.'}
-  foreach($name in $names){
+  $inventory=@($package.Files.Keys)+@('package-manifest.json','package-manifest.sig')
+  if($zip.Entries.Count -ne $inventory.Count){throw 'ZIP inventory mismatch.'}
+  $seen=New-Object 'Collections.Generic.HashSet[string]' ([StringComparer]::OrdinalIgnoreCase)
+  foreach($item in $zip.Entries){if(-not $seen.Add($item.FullName) -or $item.FullName -cnotin $inventory){throw 'Unlisted or duplicate ZIP entry.'}}
+  foreach($name in $inventory){
    $entry=$zip.GetEntry($name)
    if(-not $entry){throw "Datei fehlt im ZIP: $name"}
    $stream=$entry.Open();$sha=[Security.Cryptography.SHA256]::Create()

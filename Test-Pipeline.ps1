@@ -23,9 +23,14 @@ foreach($script in @(Get-ChildItem -LiteralPath $PSScriptRoot -Filter '*.ps1')+@
  [void][Management.Automation.Language.Parser]::ParseFile($script.FullName,[ref]$tokens,[ref]$errors)
  if($errors){throw ($errors | Out-String)}
 }
+$originalRelease=$release
+$testRoot=if($env:TMPDIR){$env:TMPDIR}else{[IO.Path]::GetTempPath()}
+$release=Join-Path $testRoot ('DriverPilot-app-tests-'+[guid]::NewGuid().ToString('N'))
+Copy-Item -LiteralPath $originalRelease -Destination $release -Recurse
 foreach($mode in @('self','transport')){
  $p=Start-Process -FilePath (Join-Path $release 'DriverPilot.exe') -ArgumentList "--$mode-test" -PassThru -WindowStyle Hidden
  if(-not $p.WaitForExit(240000)){$p.Kill();throw "$mode-Test hat das Zeitlimit überschritten."}
  if($p.ExitCode -ne 0){Get-ChildItem -LiteralPath $release -Filter '*failure.txt' | ForEach-Object {Get-Content -LiteralPath $_.FullName};throw "$mode-Test fehlgeschlagen: $($p.ExitCode)"}
 }
 Get-ChildItem -LiteralPath $release -Filter '*results.txt' | ForEach-Object {Get-Content -LiteralPath $_.FullName}
+Remove-Item -LiteralPath $release -Recurse -Force

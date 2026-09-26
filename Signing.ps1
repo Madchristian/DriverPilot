@@ -23,6 +23,18 @@ function Assert-DriverPilotSignature([string]$Path) {
  if($LASTEXITCODE -ne 0){throw "SignTool-Pruefung fehlgeschlagen: $Path"}
 }
 
+function Sign-DriverPilotManifest([string]$Path) {
+ $expected=Get-DriverPilotCertificate
+ $private=Get-Item -LiteralPath "Cert:\CurrentUser\My\$($expected.Thumbprint)" -ErrorAction Stop
+ if(-not $private.HasPrivateKey -or $private.NotAfter.ToUniversalTime() -le [DateTime]::UtcNow -or $private.NotBefore.ToUniversalTime() -gt [DateTime]::UtcNow){throw 'Manifest signing key is not currently valid.'}
+ $rsa=[Security.Cryptography.X509Certificates.RSACertificateExtensions]::GetRSAPrivateKey($private)
+ try{
+  if($rsa.KeySize -lt 2048){throw 'Manifest signing key too small.'}
+  $signature=$rsa.SignData([IO.File]::ReadAllBytes($Path),[Security.Cryptography.HashAlgorithmName]::SHA256,[Security.Cryptography.RSASignaturePadding]::Pkcs1)
+  [IO.File]::WriteAllBytes(([IO.Path]::ChangeExtension($Path,'sig')),$signature)
+ }finally{$rsa.Dispose();$private.Dispose();$expected.Dispose()}
+}
+
 function Sign-DriverPilotArtifact([string]$Path) {
  $expected=Get-DriverPilotCertificate
  $private=Get-Item -LiteralPath "Cert:\CurrentUser\My\$($expected.Thumbprint)" -ErrorAction Stop

@@ -14,6 +14,7 @@ public partial class MainWindow : Window
     readonly CodexClient codex=new();
     readonly DispatcherTimer timer=new(){Interval=TimeSpan.FromMinutes(2)};
     readonly Forms.NotifyIcon tray=new();
+    readonly System.Drawing.Icon trayIcon=AppIcon.CreateTrayIcon();
     Snapshot? snapshot;
     DateTimeOffset? reportScanAt;
     readonly ReportScanContext reportContext = new();
@@ -25,9 +26,10 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        Icon=AppIcon.CreateWindowIcon();
         MonitorBox.IsChecked=preferences.Monitor;NotifyBox.IsChecked=preferences.Notify;
         using var key=Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Windows\CurrentVersion\Run");StartupBox.IsChecked=key?.GetValue("DriverPilot")!=null;
-        tray.Icon=System.Drawing.SystemIcons.Shield;tray.Text="DriverPilot · Stabilität zuerst";tray.Visible=true;
+        tray.Icon=trayIcon;tray.Text="DriverPilot · Stabilität zuerst";tray.Visible=true;
         var menu=new Forms.ContextMenuStrip();menu.Items.Add("DriverPilot öffnen",null,(_,_)=>Dispatcher.Invoke(ShowApp));menu.Items.Add("Jetzt prüfen",null,(_,_)=>Dispatcher.Invoke(async()=>await Scan()));menu.Items.Add("Beenden",null,(_,_)=>Dispatcher.Invoke(()=>{exit=true;Close();}));tray.ContextMenuStrip=menu;
         tray.DoubleClick+=(_,_)=>Dispatcher.Invoke(ShowApp);
         Closing+=OnClosing;
@@ -39,7 +41,7 @@ public partial class MainWindow : Window
     }
     public async Task InitializeAsync(){await Scan();RefreshWorker();}
     void ShowApp(){Show();WindowState=WindowState.Normal;Activate();}
-    void OnClosing(object? sender,CancelEventArgs e){if(!exit){e.Cancel=true;Hide();return;}timer.Stop();tray.Dispose();codex.Dispose();System.Windows.Application.Current.Shutdown();}
+    void OnClosing(object? sender,CancelEventArgs e){if(!exit){e.Cancel=true;Hide();return;}timer.Stop();tray.Dispose();trayIcon.Dispose();codex.Dispose();System.Windows.Application.Current.Shutdown();}
     void Navigate(object sender,RoutedEventArgs e)
     {
         var index=int.Parse((string)((System.Windows.Controls.Button)sender).Tag);
@@ -216,5 +218,5 @@ public partial class MainWindow : Window
     internal void LoadPreview(Snapshot data){snapshot=data;RenderSnapshot();StatusLine.Text="Prüfung mit echten lokalen Gerätedaten abgeschlossen.";}
     internal void LoadManufacturerPreview(ManufacturerReport report)=>RenderManufacturers(report);
     internal void SelectPreviewPage(int index)=>Navigate(new System.Windows.Controls.Button{Tag=index.ToString()},new RoutedEventArgs());
-    internal void StopForTest(){exit=true;timer.Stop();tray.Dispose();codex.Dispose();}
+    internal void StopForTest(){exit=true;timer.Stop();tray.Dispose();trayIcon.Dispose();codex.Dispose();}
 }

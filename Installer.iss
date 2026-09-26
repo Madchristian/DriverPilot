@@ -11,6 +11,7 @@ AppName=DriverPilot
 AppVersion={#AppVersion}
 AppPublisher=DriverPilot
 WizardStyle=modern
+SetupIconFile=Assets\DriverPilot.ico
 PrivilegesRequired=admin
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible

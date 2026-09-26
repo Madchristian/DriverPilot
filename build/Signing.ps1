@@ -1,7 +1,8 @@
 $ErrorActionPreference='Stop'
+$script:DriverPilotSigningRoot=Split-Path $PSScriptRoot -Parent
 
 function Get-DriverPilotCertificate {
- $publicPath=Join-Path $PSScriptRoot 'certificates\DriverPilot.cer'
+ $publicPath=Join-Path $script:DriverPilotSigningRoot 'assets/certificates/DriverPilot.cer'
  return [Security.Cryptography.X509Certificates.X509Certificate2]::new($publicPath)
 }
 

@@ -1,11 +1,12 @@
 param([switch]$ApplicationOnly)
 $ErrorActionPreference='Stop'
-. (Join-Path $PSScriptRoot 'Signing.ps1')
-[xml]$project=Get-Content -LiteralPath (Join-Path $PSScriptRoot 'DriverPilot.csproj')
+$root=Split-Path $PSScriptRoot -Parent
+. (Join-Path $root 'build/Signing.ps1')
+[xml]$project=Get-Content -LiteralPath (Join-Path $root 'src/DriverPilot/DriverPilot.csproj')
 $version=[string]$project.Project.PropertyGroup.Version
-$release=Join-Path $PSScriptRoot "release-$version"
-Add-Type -Path (Join-Path $PSScriptRoot 'PackageTrust.cs')
-$package=[DriverPilot.Security.PackageTrust]::Verify($release,(Join-Path $PSScriptRoot 'certificates\DriverPilot.cer'),'0.0.0',$false)
+$release=Join-Path $root "artifacts/release-$version"
+Add-Type -Path (Join-Path $root 'src/DriverPilot/Security/PackageTrust.cs')
+$package=[DriverPilot.Security.PackageTrust]::Verify($release,(Join-Path $root 'assets/certificates/DriverPilot.cer'),'0.0.0',$false)
 $names=@('DriverPilot.exe','DriverPilot.dll','Setup.ps1')
 foreach($name in $names){Assert-DriverPilotSignature (Join-Path $release $name)}
 $public=Get-DriverPilotCertificate
@@ -24,9 +25,9 @@ foreach($name in @('DriverPilot.exe','Setup.ps1')){
  } finally {if(Test-Path -LiteralPath $copy){Remove-Item -LiteralPath $copy}}
 }
 if(-not $ApplicationOnly){
- $dist=Join-Path $PSScriptRoot 'dist'
+ $dist=Join-Path $root 'artifacts/dist'
  Assert-DriverPilotSignature (Join-Path $dist "DriverPilot-$version-Setup-x64.exe")
- if((Get-FileHash (Join-Path $dist 'DriverPilot.cer')).Hash -ne (Get-FileHash (Join-Path $PSScriptRoot 'certificates\DriverPilot.cer')).Hash){throw 'Falsches Releasezertifikat.'}
+ if((Get-FileHash (Join-Path $dist 'DriverPilot.cer')).Hash -ne (Get-FileHash (Join-Path $root 'assets/certificates/DriverPilot.cer')).Hash){throw 'Falsches Releasezertifikat.'}
  Add-Type -AssemblyName System.IO.Compression.FileSystem
  $zip=[IO.Compression.ZipFile]::OpenRead((Join-Path $dist "DriverPilot-$version-win-x64.zip"))
  try {

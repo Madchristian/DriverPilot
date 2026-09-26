@@ -9,7 +9,7 @@
 
 ## Installation und Grenzen
 
-**Veröffentlichte Versionen bis einschließlich 0.3.2 nur über den unabhängig geprüften signierten Installer aktualisieren, nicht über deren alten App-Updatepfad.** Den Zertifikat-Fingerabdruck direkt mit dem Herausgeber abgleichen und die Authenticode-Signatur vor der Administratorfreigabe prüfen. Siehe [UPDATE-SECURITY.md](UPDATE-SECURITY.md) und [ZERTIFIKAT-ANLEITUNG.txt](ZERTIFIKAT-ANLEITUNG.txt). Selbstsignierung verhindert nicht automatisch SmartScreen-Warnungen oder Smart-App-Control-Blockaden.
+**Veröffentlichte Versionen bis einschließlich 0.3.2 nur über den unabhängig geprüften signierten Installer aktualisieren, nicht über deren alten App-Updatepfad.** Den Zertifikat-Fingerabdruck direkt mit dem Herausgeber abgleichen und die Authenticode-Signatur vor der Administratorfreigabe prüfen. Siehe [UPDATE-SECURITY.md](../security/UPDATE-SECURITY.md) und [ZERTIFIKAT-ANLEITUNG.txt](../security/ZERTIFIKAT-ANLEITUNG.txt). Selbstsignierung verhindert nicht automatisch SmartScreen-Warnungen oder Smart-App-Control-Blockaden.
 
 Die Manifest-Signatur hat keine Zeitstempel-Verlängerung; das fest hinterlegte Zertifikat muss bei jeder Paketprüfung aktuell gültig sein. Kein automatischer Windows-Neustart, kein automatisches Rollback und keine Erweiterung der Treiber-/Firmwarewartung.
 

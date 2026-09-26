@@ -1,4 +1,10 @@
 <Project Sdk="Microsoft.NET.Sdk">
  <PropertyGroup><OutputType>Exe</OutputType><TargetFramework>net10.0-windows</TargetFramework><UseWPF>true</UseWPF><Nullable>enable</Nullable><ImplicitUsings>enable</ImplicitUsings></PropertyGroup>
- <ItemGroup><Compile Include="../../Core.cs" Link="Core.cs"/><Compile Include="../../HardwareProfile.cs" Link="HardwareProfile.cs"/><Compile Include="../../ManufacturerScanner.cs" Link="ManufacturerScanner.cs"/><Compile Include="../../SystemReport*.cs"/></ItemGroup>
+ <ItemGroup><Compile Include="../../src/DriverPilot/Infrastructure/Core.cs" Link="Core.cs"/><Compile Include="../../src/DriverPilot/Hardware/HardwareProfile.cs" Link="HardwareProfile.cs"/><Compile Include="../../src/DriverPilot/Hardware/ManufacturerScanner.cs" Link="ManufacturerScanner.cs"/><Compile Include="../../src/DriverPilot/Reporting/*.cs" Link="%(Filename)%(Extension)"/><Compile Include="../InApp/SystemReportTests.cs" Link="SystemReportTests.cs"/></ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="../../src/DriverPilot/UI/MainWindow.xaml.cs" LogicalName="MainWindowSource" />
+    <EmbeddedResource Include="../../src/DriverPilot/UI/MainWindow.xaml" LogicalName="MainWindowXaml" />
+    <EmbeddedResource Include="../../src/DriverPilot/App.xaml.cs" LogicalName="AppSource" />
+    <EmbeddedResource Include="../../src/DriverPilot/App.xaml" LogicalName="AppXaml" />
+  </ItemGroup>
 </Project>

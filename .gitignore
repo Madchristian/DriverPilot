@@ -1,5 +1,6 @@
 bin/
 obj/
+artifacts/
 release/
 release-*/
 research/
@@ -11,3 +12,4 @@ dist/
 *.pfx
 *.p12
 *.key
+__pycache__/

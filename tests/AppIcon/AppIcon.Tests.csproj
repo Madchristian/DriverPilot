@@ -6,8 +6,8 @@
     <Nullable>enable</Nullable><ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
   <ItemGroup>
-    <EmbeddedResource Include="../../MainWindow.xaml.cs" LogicalName="MainWindowSource" />
-    <EmbeddedResource Include="../../Installer.iss" LogicalName="InstallerSource" />
+    <EmbeddedResource Include="../../src/DriverPilot/UI/MainWindow.xaml.cs" LogicalName="MainWindowSource" />
+    <EmbeddedResource Include="../../installer/Installer.iss" LogicalName="InstallerSource" />
   </ItemGroup>
-  <ItemGroup><ProjectReference Include="../../DriverPilot.csproj" /></ItemGroup>
+  <ItemGroup><ProjectReference Include="../../src/DriverPilot/DriverPilot.csproj" /></ItemGroup>
 </Project>

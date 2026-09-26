@@ -19,4 +19,4 @@ Alle acht Arbeitsbereiche sind in Version 0.3.0 umgesetzt. Die geschützte Windo
 
 Herstellererweiterungen ohne maschinenlesbaren Versionskatalog sind bewusst manuelle Portale/Assistenten. Wiederherstellung nutzt die von Windows angebotenen manuellen Rückwege. App-Updates benötigen derzeit ein heruntergeladenes, entpacktes Paket und die Windows-Administratorfreigabe. Die automatische Suche nach Treibern ist davon unabhängig.
 
-Tests und verbleibende Grenzen: [VALIDATION-0.3.md](VALIDATION-0.3.md).
+Tests und verbleibende Grenzen: [VALIDATION-0.3.md](../validation/VALIDATION-0.3.md).

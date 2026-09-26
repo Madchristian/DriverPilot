@@ -78,7 +78,7 @@ internal static class Program
                 Require(line.Contains("tray.Dispose();trayIcon.Dispose();"), method + " disposes consumer before icon");
             }
             using var installerReader = new StreamReader(typeof(Program).Assembly.GetManifestResourceStream("InstallerSource")!);
-            Require(installerReader.ReadToEnd().Contains(@"SetupIconFile=Assets\DriverPilot.ico"), "Installer uses source brand ICO");
+            Require(installerReader.ReadToEnd().Contains("SetupIconFile=../assets/branding/DriverPilot.ico"), "Installer uses source brand ICO");
             Console.WriteLine("PASS MainWindow loader/lifetime and installer source wiring guards (no MainWindow startup)");
             return 0;
         }

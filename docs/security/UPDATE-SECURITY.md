@@ -44,7 +44,7 @@ credentials must not be given to untrusted PR builds.
   Reparse points in files, metadata, package root and all ancestors fail.
 * `package-manifest.sig`: raw RSA PKCS#1 v1.5 signature with SHA-256 over the
   **exact manifest bytes** (not reserialized JSON, not the textual digest).
-* SHA-256 pin of `certificates/DriverPilot.cer` DER:
+* SHA-256 pin of `assets/certificates/DriverPilot.cer` DER (shipped as `DriverPilot.cer`):
   `2C9F679EA51A77CDBC9D64E171B6C12FC9E31EBE623C8C6E357CDE5B6C9F929B`.
   Certificate thumbprint for human comparison:
   `8C1B45FCCC089BF2A4393EEF38827B5D0BBF9775`.
@@ -105,11 +105,16 @@ backups, explicit user approval/UAC and no-reboot behavior are unchanged.
 
 ## Builds and safe local tests
 
-`Build.ps1 -Sign` first Authenticode-signs the existing artifacts, then hashes the
+Commands below run from the repository root. Sources live under `src/DriverPilot`,
+the installer source under `installer`, and generated output under `artifacts`.
+These source folders do not change the flat runtime package: the installed
+`Setup.ps1`, `PackageTrust.cs` and `DriverPilot.cer` remain adjacent to the EXE.
+
+`build/Build.ps1 -Sign` first Authenticode-signs the existing artifacts, then hashes the
 complete clean published output, signs the exact manifest, and verifies it.
-`Build-Release.ps1 -Sign` verifies and packages those exact files plus metadata.
-`Build.ps1` without `-Sign` deletes stale output/signatures and produces an
-explicitly unsigned **development-only** build. `Build-Release.ps1` refuses
+`build/Build-Release.ps1 -Sign` verifies and packages those exact files plus metadata.
+`build/Build.ps1` without `-Sign` deletes stale output/signatures and produces an
+explicitly unsigned **development-only** build. `build/Build-Release.ps1` refuses
 unsigned packaging before running a compiler. PR/branch CI runs adversarial
 fixture tests and app tests, but does not publish an unsigned installer or ZIP.
 
@@ -117,8 +122,8 @@ Run on Windows with .NET SDK 10 and Windows PowerShell 5.1:
 
 ```powershell
 ./tests/Test-PackageSecurity.ps1 -Dotnet path/to/dotnet.exe
-./Build.ps1 -Dotnet path/to/dotnet.exe
-./Test-Pipeline.ps1
+./build/Build.ps1 -Dotnet path/to/dotnet.exe
+./tests/Test-Pipeline.ps1
 ```
 
 The security suite generates ephemeral in-memory RSA keys/certificates, exercises

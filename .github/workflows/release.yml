@@ -50,42 +50,42 @@ jobs:
         env:
           DRIVERPILOT_SIGNING_PFX: ${{ secrets.DRIVERPILOT_SIGNING_PFX }}
           DRIVERPILOT_SIGNING_PASSWORD: ${{ secrets.DRIVERPILOT_SIGNING_PASSWORD }}
-        run: ./Initialize-CISigning.ps1
+        run: ./build/Initialize-CISigning.ps1
       - name: Build self-contained Windows application
-        run: ./Build.ps1 -Sign:($env:DRIVERPILOT_SIGN_RELEASE -eq 'true')
+        run: ./build/Build.ps1 -Sign:($env:DRIVERPILOT_SIGN_RELEASE -eq 'true')
       - name: Run application and transport tests
-        run: ./Test-Pipeline.ps1
+        run: ./tests/Test-Pipeline.ps1
       - name: Verify native application icons
         run: |
-          [xml]$project=Get-Content -LiteralPath DriverPilot.csproj
-          $exe=Join-Path $PWD ("release-"+$project.Project.PropertyGroup.Version+"\DriverPilot.exe")
+          [xml]$project=Get-Content -LiteralPath src/DriverPilot/DriverPilot.csproj
+          $exe=Join-Path $PWD ("artifacts/release-"+$project.Project.PropertyGroup.Version+"/DriverPilot.exe")
           dotnet run --project tests/AppIcon/AppIcon.Tests.csproj -c Debug -- $exe
           if($LASTEXITCODE -ne 0){throw 'Debug icon verification failed.'}
           dotnet run --project tests/AppIcon/AppIcon.Tests.csproj -c Release -- $exe
           if($LASTEXITCODE -ne 0){throw 'Release icon verification failed.'}
       - name: Package installer and ZIP
         if: env.DRIVERPILOT_SIGN_RELEASE == 'true'
-        run: ./Build-Release.ps1 -Sign:($env:DRIVERPILOT_SIGN_RELEASE -eq 'true')
+        run: ./build/Build-Release.ps1 -Sign:($env:DRIVERPILOT_SIGN_RELEASE -eq 'true')
       - name: Verify signatures and reject tampering
         if: env.DRIVERPILOT_SIGN_RELEASE == 'true'
-        run: ./Test-Signing.ps1
+        run: ./tests/Test-Signing.ps1
       - name: Test installation on disposable runner
         if: env.DRIVERPILOT_SIGN_RELEASE == 'true'
-        run: ./Test-Pipeline.ps1 -Installer
+        run: ./tests/Test-Pipeline.ps1 -Installer
       - name: Remove runner signing key and temporary trust
         if: always() && env.DRIVERPILOT_SIGN_RELEASE == 'true'
-        run: ./Remove-CISigning.ps1
+        run: ./build/Remove-CISigning.ps1
       - name: Upload release files
         if: env.DRIVERPILOT_SIGN_RELEASE == 'true'
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: windows-x64-release
           path: |
-            dist/*-Setup-x64.exe
-            dist/*-win-x64.zip
-            dist/SHA256SUMS.txt
-            dist/DriverPilot.cer
-            dist/ZERTIFIKAT-ANLEITUNG.txt
+            artifacts/dist/*-Setup-x64.exe
+            artifacts/dist/*-win-x64.zip
+            artifacts/dist/SHA256SUMS.txt
+            artifacts/dist/DriverPilot.cer
+            artifacts/dist/ZERTIFIKAT-ANLEITUNG.txt
           if-no-files-found: error
           retention-days: 14
       - name: Upload test diagnostics
@@ -94,9 +94,9 @@ jobs:
         with:
           name: test-diagnostics
           path: |
-            release-*/*results.txt
-            release-*/*failure.txt
-            dist/installer-test.log
+            artifacts/release-*/*results.txt
+            artifacts/release-*/*failure.txt
+            artifacts/dist/installer-test.log
           retention-days: 7
 
   release:

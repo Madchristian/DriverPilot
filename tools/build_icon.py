@@ -5,7 +5,7 @@ from pathlib import Path
 from PIL import Image
 import resvg_py
 
-ASSETS = Path(__file__).resolve().parents[1] / "Assets"
+ASSETS = Path(__file__).resolve().parents[1] / "assets" / "branding"
 SIZES = (16, 20, 24, 32, 40, 48, 64, 128, 256)
 
 

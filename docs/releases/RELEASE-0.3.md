@@ -19,4 +19,4 @@ Keine Windows-Neustarts durch DriverPilot. BIOS/Firmware bleiben manuell. Herste
 
 Das Paket ist nicht digital signiert; das enthaltene SHA-256-Manifest prüft die Dateiintegrität, nicht unabhängig die Herkunft. Nur dieses private Projekt oder eigene Builds als Bezugsquelle verwenden.
 
-Build, 25 Wartungs-/Konfigurationsfälle, Nachbeobachtung, Paketprüfung, UTF-8-Transport, lokale Hardwareabfrage und WPF-Ansichten geprüft. Keine echten Treiberinstallationen, Rollbacks oder Firmwareupdates zum Testen ausgelöst. Details: VALIDATION-0.3.md.
+Build, 25 Wartungs-/Konfigurationsfälle, Nachbeobachtung, Paketprüfung, UTF-8-Transport, lokale Hardwareabfrage und WPF-Ansichten geprüft. Keine echten Treiberinstallationen, Rollbacks oder Firmwareupdates zum Testen ausgelöst. Details: [VALIDATION-0.3.md](../validation/VALIDATION-0.3.md).

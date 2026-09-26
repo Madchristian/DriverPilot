@@ -8,7 +8,7 @@ try{
  $env:DRIVERPILOT_TEST_EXPORT=$fixture
  & $Dotnet run --project (Join-Path $PSScriptRoot 'PackageSecurity/PackageSecurity.csproj')
  if($LASTEXITCODE -ne 0){throw 'C# package tests failed.'}
- Add-Type -Path (Join-Path $root 'PackageTrust.cs')
+ Add-Type -Path (Join-Path $root 'src/DriverPilot/Security/PackageTrust.cs')
  # Reflection stays in tests. Production entry points cannot choose a fixture key.
  $verify=[DriverPilot.Security.PackageTrust].GetMethod('VerifyCore',[Reflection.BindingFlags]'Static,NonPublic')
  $cert=[Security.Cryptography.X509Certificates.X509Certificate2]::new((Join-Path $fixture 'test-signer.cer'))
@@ -17,7 +17,7 @@ try{
  function Reject([scriptblock]$Action,[string]$Label){try{& $Action}catch{Write-Output "PASS $Label";return};throw "SECURITY: accepted $Label"}
  $valid=VerifyFixture
  $ErrorActionPreference='Continue'
- try{$portableOutput=& "$PSHOME/powershell.exe" -NoProfile -File (Join-Path $root 'Setup.ps1') -PackagePath $package -ApprovedManifestHash ('0'*64) 2>&1;$portableExit=$LASTEXITCODE}
+ try{$portableOutput=& "$PSHOME/powershell.exe" -NoProfile -File (Join-Path $root 'installer/Setup.ps1') -PackagePath $package -ApprovedManifestHash ('0'*64) 2>&1;$portableExit=$LASTEXITCODE}
  finally{$ErrorActionPreference='Stop'}
  if($portableExit -eq 0 -or ($portableOutput|Out-String) -notmatch 'Portable update elevation is not supported'){throw 'Portable Setup entrypoint failed to reject before loading candidate code'}
  Write-Output 'PASS real Setup entrypoint refuses portable update before staging or candidate execution'
@@ -47,7 +47,7 @@ try{
   Reject {[DriverPilot.Security.PackageTrust]::NoReparse((Join-Path $junction 'Setup.ps1'))} 'junction ancestor'
  }finally{[IO.Directory]::Delete($junction)}
  # Exercise the real signing helper with an in-memory fixture; the store lookup alone is mocked.
- . (Join-Path $root 'Signing.ps1')
+ . (Join-Path $root 'build/Signing.ps1')
  $testRsa=[Security.Cryptography.RSACng]::new(2048)
  $request=[Security.Cryptography.X509Certificates.CertificateRequest]::new('CN=Ephemeral PowerShell signing fixture',$testRsa,[Security.Cryptography.HashAlgorithmName]::SHA256,[Security.Cryptography.RSASignaturePadding]::Pkcs1)
  $testPrivate=$request.CreateSelfSigned([DateTimeOffset]::UtcNow.AddDays(-1),[DateTimeOffset]::UtcNow.AddDays(1))

@@ -86,7 +86,13 @@ git push origin v0.3.1
 
 Lokal: zuerst `Build.ps1`, danach `Test-Pipeline.ps1` und `Build-Release.ps1` ausführen. Für die Setup-EXE wird Inno Setup 6 benötigt. Der Installationstest läuft ausschließlich auf einer wegwerfbaren GitHub-Windows-Testmaschine. Dort werden Installation, Paketprüfsummen und Wartungsauftrag geprüft; der Auftrag wird anschließend deaktiviert. Der Hersteller-Onlinetest gehört wegen wechselnder externer Quellen nicht zur Release-Pipeline.
 
-Die Setup-EXE installiert DriverPilot und richtet die Automatik ein. ZIP entpacken und `DriverPilot.exe` starten ermöglicht den portablen Einstieg. Die Dateien sind derzeit nicht mit einem Codesigning-Zertifikat signiert.
+Die Setup-EXE installiert DriverPilot und richtet die Automatik ein. ZIP entpacken und `DriverPilot.exe` starten ermöglicht den portablen Einstieg.
+
+Ab 0.3.2 werden Versionstag-Releases mit dem privaten Codesigning-Zertifikat **DriverPilot (Christian)** signiert: Programm-EXE, eigene DLL, Setup-Skript und Setup-EXE erhalten SHA-256-Signaturen und Zeitstempel. Erst danach entstehen Paketmanifest und Release-Prüfsummen. Die Pipeline prüft Signaturen und weist manipulierte Testkopien zurück.
+
+**Für Freunde:** `DriverPilot.cer` und [ZERTIFIKAT-ANLEITUNG.txt](ZERTIFIKAT-ANLEITUNG.txt) liegen sowohl im Release als auch im ZIP. Den Zertifikat-Fingerabdruck direkt mit Christian abgleichen, bevor Vertrauen eingerichtet wird. Das Setup importiert keine Zertifikate. Selbstsignierung beseitigt nicht automatisch SmartScreen-Warnungen oder Smart-App-Control-Blockaden. Das private Repository erfordert auch zum Download der Releases eine Zugriffsberechtigung.
+
+Der private Schlüssel liegt ausschließlich im persönlichen Windows-Zertifikatspeicher und verschlüsselt in GitHub Actions Secrets. Er wird nur bei Tag-Pushes oder ausdrücklich gestarteten signierten Testbuilds auf `main` in einen wegwerfbaren Runner importiert und vor dem Artefakt-Upload entfernt. Pull Requests und normale Branch-Builds erhalten keinen Schlüssel und erzeugen unsignierte Testpakete. Ein manueller Lauf mit `sign=true` prüft die komplette Signierung, veröffentlicht aber kein Release. Wer Schreibrechte auf Repository/Workflows erhält, kann prinzipiell die Nutzung der Secrets beeinflussen. Für Freunde genügt es, die fertigen Release-Dateien weiterzugeben; dafür sind keine Schreibrechte am Repository nötig.
 
 Privat: https://github.com/Madchristian/DriverPilot . Quellcode und Dokumentation werden versioniert. Lokale SDKs, Buildordner, Diagnose-Snapshots, Authentifizierungsdaten und persönliche App-Einstellungen gehören nicht ins Repository. Das Release-ZIP enthält nur die Paketmanifest-Dateien und README; keine lokalen Testergebnisse oder Hardwarebilder.
 

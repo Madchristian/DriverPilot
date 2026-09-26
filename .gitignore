@@ -8,3 +8,6 @@ schema/
 *.tmp
 *.zip
 dist/
+*.pfx
+*.p12
+*.key

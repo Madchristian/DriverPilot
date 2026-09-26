@@ -7,6 +7,11 @@ on:
   pull_request:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      sign:
+        description: 'Signierter Testbuild (nur main, kein Release)'
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -19,6 +24,8 @@ jobs:
   build:
     runs-on: windows-2022
     timeout-minutes: 25
+    env:
+      DRIVERPILOT_SIGN_RELEASE: ${{ (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')) || (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && inputs.sign) }}
     defaults:
       run:
         shell: powershell
@@ -29,14 +36,26 @@ jobs:
       - uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4
         with:
           dotnet-version: '10.0.x'
+      - name: Import private release signing key
+        if: env.DRIVERPILOT_SIGN_RELEASE == 'true'
+        env:
+          DRIVERPILOT_SIGNING_PFX: ${{ secrets.DRIVERPILOT_SIGNING_PFX }}
+          DRIVERPILOT_SIGNING_PASSWORD: ${{ secrets.DRIVERPILOT_SIGNING_PASSWORD }}
+        run: ./Initialize-CISigning.ps1
       - name: Build self-contained Windows application
-        run: ./Build.ps1
+        run: ./Build.ps1 -Sign:($env:DRIVERPILOT_SIGN_RELEASE -eq 'true')
       - name: Run application and transport tests
         run: ./Test-Pipeline.ps1
       - name: Package installer and ZIP
-        run: ./Build-Release.ps1
+        run: ./Build-Release.ps1 -Sign:($env:DRIVERPILOT_SIGN_RELEASE -eq 'true')
+      - name: Verify signatures and reject tampering
+        if: env.DRIVERPILOT_SIGN_RELEASE == 'true'
+        run: ./Test-Signing.ps1
       - name: Test installation on disposable runner
         run: ./Test-Pipeline.ps1 -Installer
+      - name: Remove runner signing key and temporary trust
+        if: always() && env.DRIVERPILOT_SIGN_RELEASE == 'true'
+        run: ./Remove-CISigning.ps1
       - name: Upload release files
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
@@ -45,6 +64,8 @@ jobs:
             dist/*-Setup-x64.exe
             dist/*-win-x64.zip
             dist/SHA256SUMS.txt
+            dist/DriverPilot.cer
+            dist/ZERTIFIKAT-ANLEITUNG.txt
           if-no-files-found: error
           retention-days: 14
       - name: Upload test diagnostics
@@ -78,4 +99,4 @@ jobs:
         run: |
           cd dist
           sha256sum --check SHA256SUMS.txt
-          gh release create "$RELEASE_TAG" ./* --verify-tag --generate-notes --title "DriverPilot $RELEASE_TAG"
+          gh release create "$RELEASE_TAG" ./* --verify-tag --generate-notes --notes "Privat signierte Ausgabe. Vor der Installation ZERTIFIKAT-ANLEITUNG.txt lesen und den Zertifikat-Fingerabdruck direkt mit Christian abgleichen. DriverPilot.cer enthaelt nur den oeffentlichen Schluessel. SmartScreen/Smart App Control koennen weiterhin warnen oder blockieren." --title "DriverPilot $RELEASE_TAG"

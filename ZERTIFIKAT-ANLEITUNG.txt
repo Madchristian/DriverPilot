@@ -1,0 +1,67 @@
+DriverPilot - privates Zertifikat fuer Freunde
+=============================================
+
+Herausgeber: DriverPilot (Christian)
+Eigenes Zertifikat, keine Identitaetspruefung durch eine Zertifizierungsstelle.
+Gueltig bis 26.09.2029. Das Zertifikat enthaelt KEINEN privaten Schluessel.
+
+SHA-256-Fingerabdruck der Datei DriverPilot.cer:
+BE4FEB7E3BC96219E874B8F82AD722AFB3039C5116B1561DED2E2E7EE5ABF713
+
+1. Dateien aus Christians Release herunterladen. Das Repository ist privat;
+   du brauchst Zugriff oder bekommst die Dateien direkt von Christian.
+
+2. Den obigen Fingerabdruck direkt mit Christian abgleichen, z.B. telefonisch.
+   Eine Anleitung und ein Zertifikat aus derselben Downloadquelle allein
+   beweisen nicht, dass diese Quelle unveraendert ist.
+
+3. Im Downloadordner PowerShell oeffnen und pruefen:
+
+   Get-FileHash .\DriverPilot.cer -Algorithm SHA256
+
+   Nur bei exakt passendem Fingerabdruck fortfahren.
+
+4. Zertifikat bewusst als vertrauenswuerdig einrichten:
+   DriverPilot.cer doppelklicken -> Zertifikat installieren -> Lokaler Computer
+   -> Alle Zertifikate in folgendem Speicher speichern
+   -> Vertrauenswuerdige Stammzertifizierungsstellen -> Fertig stellen.
+   Windows benoetigt dafuer Administratorrechte und zeigt ggf. eine Warnung.
+   Dieser Schritt erfolgt einmalig, getrennt vom DriverPilot-Setup.
+
+   Damit vertraut Windows Signaturen dieses Zertifikats, auch fuer andere
+   Programme, die mit demselben privaten Schluessel signiert wurden.
+   Das Zertifikat ist auf Codesignierung beschraenkt (keine TLS-Webzertifikate).
+
+5. Setup-EXE rechtsklicken -> Eigenschaften -> Digitale Signaturen
+   -> DriverPilot (Christian) -> Details.
+   Windows muss die digitale Signatur als gueltig anzeigen.
+   Danach Setup starten. Fuer portable Nutzung ZIP entpacken und die
+   Signatur von DriverPilot.exe genauso pruefen.
+
+Grenzen:
+- SmartScreen kann weiter warnen. Smart App Control kann die App blockieren;
+  eine eigene Vertrauensinstallation ersetzt dort keine oeffentliche Signatur.
+- Windows-Schutzfunktionen nicht fuer DriverPilot ausschalten.
+- Eine Signatur bestaetigt Herkunft und Unveraendertheit, keine Fehlerfreiheit.
+- Administratorrechte fuer Setup und Treiberwartung bleiben erforderlich.
+- Updates mit demselben Zertifikat brauchen keinen erneuten Zertifikatimport.
+- Bei Schluesselverlust/Wechsel muss ein neues Zertifikat separat geprueft werden.
+
+Vertrauen spaeter entfernen:
+certlm.msc oeffnen -> Vertrauenswuerdige Stammzertifizierungsstellen
+-> Zertifikate -> ausschliesslich DriverPilot (Christian) mit diesem
+SHA-1-Zertifikatfingerabdruck loeschen:
+49CADF8392848EAB692047394783347F50189D32
+Der SHA-1-Wert identifiziert den Windows-Speichereintrag; signiert wird mit SHA-256.
+Selbst ausgestellte Zertifikate haben hier keinen zentralen Widerrufsdienst.
+
+Informationen fuer Christian:
+Der private Schluessel liegt im persoenlichen Windows-Zertifikatspeicher
+(certmgr.msc -> Eigene Zertifikate). Er liegt ausserdem verschluesselt als
+DRIVERPILOT_SIGNING_PFX und mit separatem Passwort als
+DRIVERPILOT_SIGNING_PASSWORD in GitHub Actions Secrets. Beides nie weitergeben.
+Vor einem PC-Wechsel den privaten Schluessel ueber certmgr.msc als
+passwortgeschuetzte PFX auf einen sicheren Offline-Datentraeger sichern.
+GitHub Secrets koennen nicht als Backup wieder heruntergeladen werden.
+Versionstag-Builds und explizite signierte main-Testbuilds werden signiert;
+normale CI-Artefakte sind unsigniert.

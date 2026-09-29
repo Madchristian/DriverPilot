@@ -26,7 +26,8 @@ SHA-256-Fingerabdruck der Datei DriverPilot.cer:
    -> Alle Zertifikate in folgendem Speicher speichern
    -> Vertrauenswuerdige Stammzertifizierungsstellen -> Fertig stellen.
    Windows benoetigt dafuer Administratorrechte und zeigt ggf. eine Warnung.
-   Dieser Schritt erfolgt einmalig, getrennt vom DriverPilot-Setup.
+   Dieser Schritt erfolgt einmalig je Zertifikat, getrennt vom DriverPilot-Setup.
+   Weder App noch Installer importieren Zertifikate automatisch.
 
    Damit vertraut Windows Signaturen dieses Zertifikats, auch fuer andere
    Programme, die mit demselben privaten Schluessel signiert wurden.
@@ -46,6 +47,12 @@ Grenzen:
 - Administratorrechte fuer Setup und Treiberwartung bleiben erforderlich.
 - Updates mit demselben Zertifikat brauchen keinen erneuten Zertifikatimport.
 - Bei Schluesselverlust/Wechsel muss ein neues Zertifikat separat geprueft werden.
+  Neues Windows-Vertrauen allein aendert den fest eingebauten Updater-Pin nicht.
+  Im Zweifel den unabhaengig geprueften neuen signierten Installer verwenden,
+  nicht ein heruntergeladenes Setup.ps1 oder den alten App-Updatepfad.
+- Bei Verdacht auf Schluesseldiebstahl keine weiteren App-Updates ueber den alten
+  Updater durchfuehren. Christian direkt kontaktieren und altes Vertrauen wie
+  unten beschrieben entfernen. Es gibt keinen automatischen zentralen Widerruf.
 
 Vertrauen spaeter entfernen:
 certlm.msc oeffnen -> Vertrauenswuerdige Stammzertifizierungsstellen
@@ -63,5 +70,10 @@ DRIVERPILOT_SIGNING_PASSWORD in GitHub Actions Secrets. Beides nie weitergeben.
 Vor einem PC-Wechsel den privaten Schluessel ueber certmgr.msc als
 passwortgeschuetzte PFX auf einen sicheren Offline-Datentraeger sichern.
 GitHub Secrets koennen nicht als Backup wieder heruntergeladen werden.
+Wiederherstellung vor dem Rechnerwechsel isoliert pruefen. Passwort getrennt
+aufbewahren; PFX, Base64-Inhalt und Passwort nie in Logs oder Tickets kopieren.
+Maintainer-Runbook fuer Backup/Restore, 90-Tage-Ablaufwarnung, Zertifikatswechsel
+und Release-Stopp bei Verlust/Kompromittierung:
+https://github.com/Madchristian/DriverPilot/blob/main/docs/security/SIGNING-LIFECYCLE.md
 Versionstag-Builds und explizite signierte main-Testbuilds werden signiert;
 normale CI-Artefakte sind unsigniert.

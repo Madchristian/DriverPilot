@@ -1,0 +1,28 @@
+name: Signing certificate expiry
+
+on:
+  schedule:
+    - cron: '17 8 * * 1'
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'assets/certificates/DriverPilot.cer'
+      - 'build/Signing.ps1'
+      - 'build/Test-CertificateExpiry.ps1'
+      - '.github/workflows/certificate-expiry.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  certificate-expiry:
+    runs-on: windows-2022
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Check public certificate (fail within 90 days, no secrets)
+        shell: powershell
+        run: ./build/Test-CertificateExpiry.ps1 -FailOnWarning

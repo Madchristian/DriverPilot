@@ -74,6 +74,14 @@ installer. Replacing a package's certificate alone never rotates trust. If the
 old key is expired/unavailable, use the independently verified installer. The
 single-pin design intentionally does not silently trust arbitrary successor keys.
 
+Maintainer procedures are in the German [signing lifecycle runbook](SIGNING-LIFECYCLE.md):
+encrypted offline backup/restore, 90-day validity warning and weekly public-only
+monitor, deliberate recipient trust, and release freeze/key-compromise response.
+The independently verified installer is the standard rotation route. An old-key
+bridge requires a separately reviewed and tested packaging path: the current
+build scripts use one repository certificate/pin, not a built-in rotation switch.
+Neither the app nor the installer automatically imports replacement certificates.
+
 ## Approval, staging and replacement
 
 1. The GUI checks installed location, ownership, write ACLs and reparses; verifies

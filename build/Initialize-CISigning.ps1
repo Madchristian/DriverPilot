@@ -7,12 +7,14 @@ if($env:GITHUB_ACTIONS -ne 'true' -or $env:RUNNER_ENVIRONMENT -ne 'github-hosted
 }
 . (Join-Path $PSScriptRoot 'Signing.ps1')
 $expected=Get-DriverPilotCertificate
+Assert-DriverPilotCertificateValidity $expected
 if(-not $env:DRIVERPILOT_SIGNING_PFX -or -not $env:DRIVERPILOT_SIGNING_PASSWORD){throw 'GitHub-Signiergeheimnisse fehlen.'}
 $bytes=[Convert]::FromBase64String($env:DRIVERPILOT_SIGNING_PFX)
 try {
  $flags=[Security.Cryptography.X509Certificates.X509KeyStorageFlags]::UserKeySet -bor [Security.Cryptography.X509Certificates.X509KeyStorageFlags]::PersistKeySet
  $certificate=[Security.Cryptography.X509Certificates.X509Certificate2]::new($bytes,$env:DRIVERPILOT_SIGNING_PASSWORD,$flags)
  if($certificate.Thumbprint -ne $expected.Thumbprint -or -not $certificate.HasPrivateKey){throw 'Falsches Signierzertifikat.'}
+ Assert-DriverPilotCertificateValidity $certificate
  $store=[Security.Cryptography.X509Certificates.X509Store]::new('My','CurrentUser')
  try{$store.Open('ReadWrite');$store.Add($certificate)}finally{$store.Close()}
  # Trust only on the disposable runner, to verify the self-signed artifacts.

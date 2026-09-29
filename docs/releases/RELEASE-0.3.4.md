@@ -1,5 +1,7 @@
 # DriverPilot 0.3.4
 
+Veröffentlicht als [v0.3.4](https://github.com/Madchristian/DriverPilot/releases/tag/v0.3.4). Konkrete Signatur-, Manipulations-, Installer- und Release-Nachweise sowie die getrennt zu betrachtende spätere Upgrade-CI: [Validierung des signierten Stands](../validation/VALIDATION-SIGNED.md).
+
 ## Änderungen
 
 - Strukturiertes Hardwareprofil für fremde PCs: System-/Mainboardhersteller, Modell, Revision, BIOS, Windows-Build und Architektur. OEM-/Notebook-Zuordnung hat Vorrang vor Retail-Mainboards.

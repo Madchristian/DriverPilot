@@ -18,6 +18,8 @@ Release-Tags hängt zusätzlich von diesem Job ab.
 
 ## Nachweise
 
+Konkreter erfolgreicher Lauf und Abgrenzung zum veröffentlichten Release: [Validierung des signierten Stands](VALIDATION-SIGNED.md).
+
 Die Baseline ist ein Build des aktuellen Quellstands mit Version `0.0.1`,
 kein historischer Download. Beide Versionen binden an denselben kurzlebigen
 Testschlüssel. Der Bootstrap verwendet das authentifizierte Setup-Skript;

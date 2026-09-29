@@ -1,10 +1,18 @@
 # DriverPilot 0.3.4
 
-Der vorbereitete Stand 0.3.4 ergänzt herstellerunabhängige Hardwareprofile, datensparsame Systemberichte und das neue Chip-Icon. Die seit 0.3.3 signierten App-Updates bleiben unverändert abgesichert. Migration von veröffentlichten Versionen bis 0.3.2 nur über den unabhängig geprüften signierten Installer. Hinweise und Testgrenzen: [Release-Notizen](https://github.com/Madchristian/DriverPilot/blob/main/docs/releases/RELEASE-0.3.4.md) und [Update-Sicherheit](https://github.com/Madchristian/DriverPilot/blob/main/docs/security/UPDATE-SECURITY.md).
+Die veröffentlichte Version [0.3.4](https://github.com/Madchristian/DriverPilot/releases/tag/v0.3.4) ergänzt herstellerunabhängige Hardwareprofile, datensparsame Systemberichte und das neue Chip-Icon. Release-Dateien sind seit 0.3.2 signiert, das vollständige App-Updateinventar ist seit 0.3.3 durch ein signiertes Manifest authentifiziert. Migration von veröffentlichten Versionen bis 0.3.2 nur über den unabhängig geprüften signierten Installer. Nachweise und Testgrenzen: [aktueller Validierungsbericht](https://github.com/Madchristian/DriverPilot/blob/main/docs/validation/VALIDATION-SIGNED.md), [Release-Notizen](https://github.com/Madchristian/DriverPilot/blob/main/docs/releases/RELEASE-0.3.4.md) und [Update-Sicherheit](https://github.com/Madchristian/DriverPilot/blob/main/docs/security/UPDATE-SECURITY.md). Spätere CI-/Betriebsänderungen auf main sind nicht automatisch Bestandteil des veröffentlichten Tags.
 
 Windows-App für lokale Hardwarediagnose, Geräte-/Treiberüberwachung und konservative Treiberwartung. Für einen selbst zusammengestellten Windows-11-Gaming-PC mit Schwerpunkt Stabilität.
 
 ## Start
+
+### Für Freunde: Download, Vertrauen und Updates
+
+1. [GitHub-Releases](https://github.com/Madchristian/DriverPilot/releases) mit einem berechtigten GitHub-Konto öffnen; Repository und Downloads sind privat. Alternativ die unveränderten Release-Dateien direkt von Christian beziehen.
+2. Vor dem ersten Start `DriverPilot.cer` und die [Zertifikatanleitung](https://github.com/Madchristian/DriverPilot/blob/main/docs/security/ZERTIFIKAT-ANLEITUNG.txt) lesen, den Fingerabdruck unabhängig mit Christian abgleichen, Vertrauen bewusst einrichten und die digitale Signatur der Setup-EXE prüfen. Das Setup importiert kein Zertifikat. Windows-Schutzfunktionen nicht abschalten.
+3. **Erstinstallation oder Migration von 0.3.2 und älter:** den so geprüften signierten `DriverPilot-<Version>-Setup-x64.exe` starten. Der Installer richtet auch die Wartungsautomatik ein; anschließend Regeln und Zeitfenster unter **Wartung & Sperren** prüfen oder die Automatik in den Einstellungen deaktivieren. Kein heruntergeladenes `Setup.ps1` direkt ausführen.
+4. **Update einer geschützten Installation ab 0.3.3:** das signierte Release-ZIP einer strikt neueren Version vollständig in einen eigenen Ordner entpacken, dann **Einstellungen → Updatepaket auswählen …** verwenden. Den Ordner unverändert lassen; die App prüft Herausgeber, Version und vollständigen Inhalt vor der Administratorfreigabe. Bei Zertifikatswechsel oder unklarer Herkunft Christian kontaktieren; neues Windows-Vertrauen allein ändert den eingebauten Updater-Pin nicht.
+5. **Nur portable Diagnose:** signiertes ZIP entpacken, EXE-Signatur prüfen und `DriverPilot.exe` öffnen. Portable Nutzung ist keine geschützte Installation und darf keine lokalen Skripte für Einrichtung oder App-Updates erhöhen.
 
 `DriverPilot.exe` öffnen. Geräte und ausgewählte Windows-Systemereignisse werden gelesen. Schließen minimiert in den Infobereich; dort lässt sich die App beenden. Die Diagnose läuft ohne Administratorrechte.
 
@@ -29,7 +37,7 @@ Die erste Installation erfolgt ausschließlich über den unabhängig geprüften,
 
 ### Neu in 0.3.4: fremde PCs und Systembericht
 
-Der Arbeitsstand erweitert die Hardwareerfassung um Systemhersteller/-modell, Mainboardhersteller/-modell/-revision, BIOS-Datum, Architektur und Windows-Build. ASUS, MSI, Gigabyte, ASRock, Dell, HP, Lenovo und Acer werden über gemeinsame Herstelleradapter zugeordnet. Bei OEM-Rechnern und Notebooks hat der Systemhersteller Vorrang. Unbekannte oder unvollständige Zuordnungen bleiben ausdrücklich offen.
+Version 0.3.4 erweitert die Hardwareerfassung um Systemhersteller/-modell, Mainboardhersteller/-modell/-revision, BIOS-Datum, Architektur und Windows-Build. ASUS, MSI, Gigabyte, ASRock, Dell, HP, Lenovo und Acer werden über gemeinsame Herstelleradapter zugeordnet. Bei OEM-Rechnern und Notebooks hat der Systemhersteller Vorrang. Unbekannte oder unvollständige Zuordnungen bleiben ausdrücklich offen.
 
 Neue Herstellerwege sind **manuelle offizielle Portale**, keine zugesagte modellgenaue Unterstützung. Es liegen noch keine bestätigten ASUS-/Freundes-Konfigurationen vor. Der bekannte MSI-/X670E-Pfad bleibt eng an die verifizierte Modellzuordnung gebunden; automatische Windows-11-Paketvergleiche setzen eine bestätigte x64-/Windows-11-Identität voraus. BIOS und Firmware werden nicht geflasht.
 
@@ -54,7 +62,9 @@ Der zusätzliche Bereich prüft unterstützte offizielle Herstellerquellen tägl
 
 Neue belegte Treiberversionen können eine Benachrichtigung auslösen. Ein offener Vergleich oder eine gesperrte Quelle bedeutet nicht „aktuell“. Datum und Quelle sind sichtbar, ein älterer zwischengespeicherter Bericht ist mit seinem Prüfzeitpunkt gekennzeichnet. BIOS, SSD-Firmware und Hersteller-EXE-Pakete werden durch diese Suche weder heruntergeladen noch installiert; die bestehende Windows-Update-Automatik wird nicht erweitert.
 
-## Neu in 0.3
+## Abgeschlossene 0.3-Basis und nachfolgende Absicherung
+
+Die acht ursprünglichen Arbeitsbereiche sind seit 0.3.0 umgesetzt; das bedeutet keine vollständige reale Treiber-/Rollback-Abnahme. Die folgende Übersicht enthält auch die nachfolgende Update-Absicherung ab 0.3.3. Offene Folgearbeiten sind getrennt im [Projektplan und den Milestones](https://github.com/Madchristian/DriverPilot/blob/main/docs/planning/PLAN.md) geführt, nicht als noch ausstehende 0.3-Basis.
 
 - **Wartung & Sperren:** Wochentage, Stunden, 14–90 Tage Paketbeobachtung, Pause bis morgen, eigene Spiele-/Streaming-Prozessnamen und Netzwerklastgrenze. Der erhöhte Worker liest die Regeln erneut vor jedem Paket und unmittelbar vor der Installation. Ungültige Regeln verhindern die Wartung. Eine laufende Installation wird nicht abgebrochen.
 - **Hardware → Gerät auf Version halten:** verhindert DriverPilot-Updates für dieses konkrete Geräteexemplar. **Treiberupdates → Update sperren:** blockiert das ausgewählte Windows-Update-Paket über seine Update-ID (einschließlich Revisionen). Sperren lassen sich unter Wartung aufheben. Sie verändern keine Richtlinien von Windows Update oder Hersteller-Tools.
@@ -123,27 +133,32 @@ Quellen: https://learn.chatgpt.com/docs/app-server und https://learn.microsoft.c
 
 ## Repository und Release
 
-GitHub Actions baut und testet jeden Push auf `main`, Pull Requests sowie manuell gestartete Läufe. Nur für signierte Läufe steht unter **Actions → Windows build and release** das Artefakt `windows-x64-release` 14 Tage zum Download bereit. Es enthält die Setup-EXE, das portable ZIP und `SHA256SUMS.txt`.
+GitHub Actions baut und testet Pushes auf `main`, Pull Requests gegen `main`, Versionstags und manuell gestartete Läufe. Beliebige andere Branch-Pushes starten diesen Workflow nicht automatisch. Nach erfolgreichem signiertem Build-Job steht unter **Actions → Windows build and release** das Artefakt `windows-x64-release` 14 Tage zum Download bereit. Es enthält die Setup-EXE, das portable ZIP, `SHA256SUMS.txt`, `DriverPilot.cer` und `ZERTIFIKAT-ANLEITUNG.txt`. Die Veröffentlichung eines Tags setzt zusätzlich den erfolgreichen Upgrade-Job voraus.
 
-Ein Push eines Versionstags veröffentlicht diese Dateien nach erfolgreichen Tests automatisch als GitHub Release. Beispiel für Version 0.3.4 (muss mit `src/DriverPilot/DriverPilot.csproj` übereinstimmen):
+| Laufart | Produktionssignierung und Ausgabe |
+| --- | --- |
+| PR, main-Push oder manueller Lauf mit `sign=false` | Unsigniertes Entwicklungsprogramm; keine Release-ZIPs/Installer und kein `windows-x64-release`. Sicherheitstests nutzen kurzlebige Testschlüssel. |
+| Manueller Lauf auf `main` mit `sign=true` | Signierter Testbuild einschließlich Signatur-/Manipulations- und Installerprüfung; Download als Actions-Artefakt, **kein GitHub Release**. |
+| Push eines passenden `v*`-Versionstags | Signierte Release-Dateien; Veröffentlichung erst nach erfolgreichen Build- und Upgrade-Jobs. |
 
-```powershell
-git tag v0.3.4
-git push origin v0.3.4
-```
+Signierte Testbuilds bewusst über **Actions → Windows build and release → Run workflow → main → sign** starten. Auf einem anderen Branch wird auch bei `sign=true` kein Produktionsschlüssel verwendet. Testartefakte sind nicht mit einem veröffentlichten Release gleichzusetzen. Der separate Upgrade-Job verwendet immer einen kurzlebigen Testschlüssel; sein `app-upgrade-evidence`-Artefakt ist ebenfalls 14 Tage verfügbar, auch bei Fehlern.
+
+Ein Push eines Versionstags veröffentlicht diese Dateien nach erfolgreichen Tests automatisch als GitHub Release. Nur nach ausdrücklicher Release-Freigabe einen **neuen**, zur Version in `src/DriverPilot/DriverPilot.csproj` passenden Tag `v<Major.Minor.Patch>` erstellen und pushen. `v0.3.4` ist bereits veröffentlicht und darf nicht neu gesetzt oder überschrieben werden.
 
 Lokal ohne Schlüssel: `build/Build.ps1`, `tests/Test-PackageSecurity.ps1` und `tests/Test-Pipeline.ps1` ausführen. Für einen ausdrücklich autorisierten Release: `build/Build.ps1 -Sign`, danach `tests/Test-Pipeline.ps1` und `build/Build-Release.ps1 -Sign`. Unsigned Builds sind nur Entwicklungsprogramme, keine installierbaren oder updatefähigen Pakete. Für die Setup-EXE wird Inno Setup 6 benötigt. Der Installationstest läuft ausschließlich auf einer wegwerfbaren GitHub-Windows-Testmaschine. Dort werden Installation, Paketprüfsummen und Wartungsauftrag geprüft; der Auftrag wird anschließend deaktiviert. Der Hersteller-Onlinetest gehört wegen wechselnder externer Quellen nicht zur Release-Pipeline.
 
 Die Setup-EXE installiert DriverPilot und richtet die Automatik ein. ZIP entpacken und `DriverPilot.exe` starten ermöglicht den portablen Einstieg.
 
-Ab 0.3.2 werden Versionstag-Releases mit dem privaten Codesigning-Zertifikat **Christian Strube** signiert: Programm-EXE, eigene DLL, Setup-Skript und Setup-EXE erhalten SHA-256-Signaturen und Zeitstempel. Erst danach entstehen Paketmanifest und dessen abgesetzte RSA-SHA256-Signatur sowie Release-Prüfsummen. Die Manifest-Signatur hat ausdrücklich keine Zeitstempel-Verlängerung: Das fest hinterlegte Zertifikat muss bei jeder Paketprüfung aktuell gültig sein. Die Pipeline prüft Signaturen und weist manipulierte Testkopien zurück.
+Ab 0.3.2 werden Versionstag-Releases mit dem privaten Codesigning-Zertifikat **Christian Strube** signiert: Programm-EXE, eigene DLL, Setup-Skript und Setup-EXE erhalten SHA-256-Signaturen und Zeitstempel. **Seit 0.3.3** entsteht nach dem Signieren der Paketdateien das vollständige Paketmanifest samt abgesetzter RSA-SHA256-Signatur; anschließend werden ZIP und signierter Installer erstellt und die Release-Prüfsummen berechnet. Die Manifest-Signatur hat ausdrücklich keine Zeitstempel-Verlängerung: Das fest hinterlegte Zertifikat muss bei jeder Paketprüfung aktuell gültig sein. Die Pipeline prüft Signaturen und weist manipulierte Testkopien zurück.
 
 **Für Freunde:** `DriverPilot.cer` und [ZERTIFIKAT-ANLEITUNG.txt](https://github.com/Madchristian/DriverPilot/blob/main/docs/security/ZERTIFIKAT-ANLEITUNG.txt) liegen sowohl im Release als auch im ZIP. Den Zertifikat-Fingerabdruck direkt mit Christian abgleichen, bevor Vertrauen eingerichtet wird. Das Setup importiert keine Zertifikate. Selbstsignierung beseitigt nicht automatisch SmartScreen-Warnungen oder Smart-App-Control-Blockaden. Das private Repository erfordert auch zum Download der Releases eine Zugriffsberechtigung.
 
 Der private Schlüssel liegt im persönlichen Windows-Zertifikatspeicher und verschlüsselt in GitHub Actions Secrets; zusätzlich ist ein separat passwortgeschütztes Offline-Backup mit Wiederherstellungsprobe erforderlich. Er wird nur bei Tag-Pushes oder ausdrücklich gestarteten signierten Testbuilds auf `main` in einen wegwerfbaren Runner importiert und vor dem Artefakt-Upload entfernt. Pull Requests und normale Branch-Builds erhalten keinen Schlüssel. Sie testen mit kurzlebigen Testschlüsseln, bauen nur Entwicklungsprogramme und erzeugen keine Installer oder Release-ZIPs. Es gibt keinen Testschlüssel-Schalter im produktiven Verifier. Ein manueller Lauf mit `sign=true` prüft die komplette Signierung, veröffentlicht aber kein Release. Wer Schreibrechte auf Repository/Workflows erhält, kann prinzipiell die Nutzung der Secrets beeinflussen. Für Freunde genügt es, die fertigen Release-Dateien weiterzugeben; dafür sind keine Schreibrechte am Repository nötig.
 
-**Für Maintainer:** Das [Signing-Lifecycle-Runbook](docs/security/SIGNING-LIFECYCLE.md) beschreibt verschlüsseltes Offline-Backup und Restore, die 90-Tage-Warnung und den wöchentlichen öffentlichen Zertifikatsmonitor, den Wechsel des fest gepinnten Updaters sowie Release-Stopp und manuelle Vertrauensentfernung bei Schlüsselverlust oder Kompromittierung. Neues Windows-Vertrauen allein rotiert den Updater-Pin nicht. App und Installer importieren keine Zertifikate automatisch; es gibt keinen zentralen Widerruf der selbstsignierten Schlüssel.
+**Für Maintainer:** Das [Signing-Lifecycle-Runbook](https://github.com/Madchristian/DriverPilot/blob/main/docs/security/SIGNING-LIFECYCLE.md) beschreibt verschlüsseltes Offline-Backup und Restore, die 90-Tage-Warnung und den wöchentlichen öffentlichen Zertifikatsmonitor, den Wechsel des fest gepinnten Updaters sowie Release-Stopp und manuelle Vertrauensentfernung bei Schlüsselverlust oder Kompromittierung. Neues Windows-Vertrauen allein rotiert den Updater-Pin nicht. App und Installer importieren keine Zertifikate automatisch; es gibt keinen zentralen Widerruf der selbstsignierten Schlüssel.
 
-Privat: https://github.com/Madchristian/DriverPilot . Quellcode und Dokumentation werden versioniert. Lokale SDKs, Buildordner, Diagnose-Snapshots, Authentifizierungsdaten und persönliche App-Einstellungen gehören nicht ins Repository. Das Release-ZIP enthält nur das authentifizierte Inventar plus Manifest und abgesetzte Signatur; keine lokalen Testergebnisse oder Hardwarebilder.
+Privat: https://github.com/Madchristian/DriverPilot . Quellcode und Dokumentation werden versioniert. Lokale SDKs, Buildordner, Diagnose-Snapshots, Authentifizierungsdaten und persönliche App-Einstellungen gehören nicht ins Repository.
+
+**Inhalt des flachen Release-ZIPs ab 0.3.3:** `DriverPilot.exe`, `DriverPilot.dll`, die mitgelieferten .NET-/Windows-x64-Laufzeitdateien, `Setup.ps1`, `PackageTrust.cs`, `DriverPilot.cer`, `ZERTIFIKAT-ANLEITUNG.txt`, `UPDATE-SECURITY.md`, `README.md` sowie `package-manifest.json` und `package-manifest.sig`. Das Manifest listet sämtliche Paketdateien außer sich selbst und seiner Signatur auf. Kein privater Schlüssel, keine lokalen Testergebnisse oder Hardwarebilder; Setup-EXE und `SHA256SUMS.txt` sind separate Release-Dateien, nicht Teil des ZIPs.
 
 `build/Build.ps1` erstellt das selbstständige Windows-x64-Paket inklusive SHA-256-Manifest. Tests auf einer separaten Kopie ausführen (`tests/Test-Pipeline.ps1` erledigt dies), niemals Diagnosedateien in ein Updatepaket schreiben: Das vollständige Inventar weist zusätzliche Dateien zurück. Die Tests prüfen lokal und teilweise online, installieren aber keine Treiber. Reale Treiberinstallationen, Rollbacks und BIOS-/Firmwareupdates wurden nicht zu Testzwecken durchgeführt.

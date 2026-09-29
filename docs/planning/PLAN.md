@@ -1,4 +1,6 @@
-# DriverPilot 0.3 – Stabilität und nachvollziehbare Wartung
+# DriverPilot – abgeschlossene 0.3-Basis und Folgeplanung
+
+## Ursprünglicher Umfang 0.3 (umgesetzt)
 
 Verbindlich: Windows-Neustarts nur durch den Benutzer; BIOS, Firmware und Speichertreiber bleiben manuell. Keine freien KI-Systembefehle.
 
@@ -19,4 +21,18 @@ Alle acht Arbeitsbereiche sind in Version 0.3.0 umgesetzt. Die geschützte Windo
 
 Herstellererweiterungen ohne maschinenlesbaren Versionskatalog sind bewusst manuelle Portale/Assistenten. Wiederherstellung nutzt die von Windows angebotenen manuellen Rückwege. App-Updates benötigen derzeit ein heruntergeladenes, entpacktes Paket und die Windows-Administratorfreigabe. Die automatische Suche nach Treibern ist davon unabhängig.
 
-Tests und verbleibende Grenzen: [VALIDATION-0.3.md](../validation/VALIDATION-0.3.md).
+Historische Tests und damalige Grenzen: [VALIDATION-0.3.md](../validation/VALIDATION-0.3.md). Der Bericht bleibt unverändert; insbesondere war 0.3.0 noch unsigniert.
+
+## Signierter Stand und getrennte Folge-Milestones
+
+0.3.2 führte signierte Release-Dateien ein, 0.3.3 das authentifizierte vollständige Updateinventar. 0.3.4 ist veröffentlicht und ergänzt Hardwareprofile, Systemberichte und Icon. Nachfolgend auf main ergänzte Upgrade-CI und Zertifikatsbetriebsverfahren sind nicht rückwirkend Bestandteil des Tags 0.3.4. Erfolgreiche Läufe mit exakten Quellständen und verbleibenden Testlücken: [Validierung des signierten Stands](../validation/VALIDATION-SIGNED.md).
+
+Die GitHub-Milestones führen eigenständige Folgearbeiten; eine veröffentlichte Versionsnummer schließt ihren gleichnamigen Milestone nicht automatisch ab:
+
+| Milestone | Umfang und Abgrenzung |
+| --- | --- |
+| [0.3.3 – Updates und Signierung absichern](https://github.com/Madchristian/DriverPilot/milestone/1) | Authentifizierte Updates, signierte Upgrade-/Fehlertests, Zertifikatsbetrieb und aktuelle Dokumentation. Der historische Milestone-Name bleibt bestehen, auch wenn Nachweise aus 0.3.4 und späteren main-Commits stammen. |
+| [0.4.0 – Nutzung im Freundeskreis](https://github.com/Madchristian/DriverPilot/milestone/2) | Bewusste Aktivierung der Wartung, verständliche Voraussetzungen, Einrichtung/Deinstallation, datensparsame Fehlerberichte und dokumentierter Betatest. Kein bereits abgeschlossener Freundes-PC-Test. |
+| [0.5.0 – Hardware und Diagnose erweitern](https://github.com/Madchristian/DriverPilot/milestone/3) | Weitere Hardwarekonfigurationen, reproduzierbare Herstellerquellentests und Nachbeobachtung über App-Neustarts. Unbekannte Versionsstände bleiben offen. |
+
+Maßgeblich sind die Akzeptanzkriterien der verlinkten Issues, nicht allein vorhandener Code. Reale Treiberinstallation und Rollback, BIOS-/Firmwareflash und neue Live-Codex-Anmeldung sind weiterhin nicht Ende-zu-Ende nachgewiesen. Keine automatischen Windows-Neustarts oder freien KI-Systembefehle; BIOS/Firmware bleiben manuell.

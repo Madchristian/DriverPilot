@@ -33,16 +33,23 @@ public sealed class RemoteDiagnosisWindow : Window
     readonly RemoteScan? scan;
     readonly DispatcherTimer poll = new();
     readonly Random jitter = new();
-    bool working, rendering;
+    bool working, rendering, closed;
+    CancellationTokenSource? uploadCancellation;
+    readonly Func<string, bool?> save;
+    string operation = "";
 
-    readonly TextBlock accessStatus = Note(), caseStatus = Note(), status = Note();
+    readonly TextBlock accessStatus = Note(), caseStatus = Note(), status = Note(), disclosure = Note(), previewStage = Note();
     readonly TextBox server = Input(), description = Input(true, 90), steps = Input(true, 70), gameBuild = Input(), feedbackNote = Input(true, 60);
     readonly PasswordBox invitation = new() { Padding = new Thickness(10), FontSize = 14, Margin = new Thickness(0, 0, 0, 10) };
     readonly ComboBox category = Choice(RemoteReportBuilder.Categories.Select(RemoteText.Category)), scope = Choice(ScopeLabels, 2), addons = Choice(AddonLabels, 2), outcome = Choice(OutcomeLabels, 1);
     readonly CheckBox wow = new() { Content = Label("Angaben zu World of Warcraft mitsenden") }, externalAi = new(), consent = new();
     readonly TextBox notice = ReadOnly(110, false), preview = ReadOnly(230, true), result = ReadOnly(280, false);
     readonly Button pair = new() { Content = "Verbinden" }, unpair = new() { Content = "Zugang entfernen" };
-    readonly Button send = new() { Content = "Zustimmen und senden", Background = new SolidColorBrush(Color.FromRgb(54, 107, 232)) }, export = new() { Content = "Vorschau lokal speichern …" };
+    readonly Button review = new() { Content = "Vorschau prüfen / Zustimmung" }, cancelUpload = new() { Content = "Upload abbrechen" };
+    readonly Button send = new() { Content = "Genau dieses JSON jetzt senden", Background = new SolidColorBrush(Color.FromRgb(54, 107, 232)) }, export = new() { Content = "Vorschau lokal speichern …" };
+    readonly TextBox feedbackPreview = ReadOnly(130, true);
+    readonly TextBlock feedbackDisclosure = Note();
+    readonly Button feedbackReview = new() { Content = "Rückmeldung prüfen (noch nicht senden)" };
     readonly Button refresh = new() { Content = "Aktualisieren" }, feedback = new() { Content = "Rückmeldung senden" }, delete = new() { Content = "Fall auf dem Server löschen" };
     readonly StackPanel pairingPanel = new(), reportPanel = new(), wowPanel = new(), casePanel = new(), feedbackPanel = new();
 
@@ -50,9 +57,9 @@ public sealed class RemoteDiagnosisWindow : Window
         : this(new RemoteDiagnosisSession(new FileRemoteStateStore(), new DpapiProtector(),
             origin => new RemoteApiClient(RemoteApiClient.CreateHandler(), origin, AppVersion, ContractRules.Embedded), () => DateTimeOffset.UtcNow, ContractRules.Embedded, AppVersion), scan) { }
 
-    public RemoteDiagnosisWindow(RemoteDiagnosisSession session, RemoteScan? scan)
+    public RemoteDiagnosisWindow(RemoteDiagnosisSession session, RemoteScan? scan, Func<string, bool?>? save = null)
     {
-        this.session = session; this.scan = scan;
+        this.session = session; this.scan = scan; this.save = save ?? SaveFile;
         Title = "DriverPilot · Hilfe von Christian"; Width = 1000; Height = 860; MinWidth = 760; MinHeight = 620;
         WindowStartupLocation = WindowStartupLocation.CenterOwner;
         Background = new SolidColorBrush(Color.FromRgb(11, 20, 35));
@@ -89,40 +96,59 @@ public sealed class RemoteDiagnosisWindow : Window
 
         reportPanel.Children.Add(Heading("3 · Prüfen und zustimmen"));
         reportPanel.Children.Add(Label("Datenschutzhinweis des Servers")); reportPanel.Children.Add(notice);
-        reportPanel.Children.Add(Label("Vorschau · genau diese Daten werden gesendet. Automatische Filter erkennen nicht alles: bitte selbst prüfen."));
-        reportPanel.Children.Add(preview);
+        reportPanel.Children.Add(disclosure);
         externalAi.Content = Label("Zusätzlich erlauben: Eine externe KI darf einen Entwurf erstellen, den Christian prüft. Ohne Haken bearbeitet nur Christian den Bericht.");
-        consent.Content = Label("Ich habe die gesamte Vorschau und den Datenschutzhinweis gelesen und stimme dem Senden dieses Berichts an Christian zu.");
+        consent.Content = Label("Ich habe Entwurf und Datenschutzhinweis geprüft. Meine Zustimmung für diesen Bericht vorbereiten; noch nichts senden.");
         reportPanel.Children.Add(externalAi); reportPanel.Children.Add(consent);
-        var sendActions = new WrapPanel(); sendActions.Children.Add(send); sendActions.Children.Add(export); reportPanel.Children.Add(sendActions);
+        reportPanel.Children.Add(review);
+        reportPanel.Children.Add(previewStage); reportPanel.Children.Add(preview);
+        var sendActions = new WrapPanel(); sendActions.Children.Add(send); sendActions.Children.Add(export); sendActions.Children.Add(cancelUpload); reportPanel.Children.Add(sendActions);
 
         page.Children.Add(casePanel);
         casePanel.Children.Add(Heading("4 · Dein Fall"));
         casePanel.Children.Add(caseStatus); casePanel.Children.Add(result);
         var caseActions = new WrapPanel { Margin = new Thickness(0, 10, 0, 10) }; caseActions.Children.Add(refresh); caseActions.Children.Add(delete); casePanel.Children.Add(caseActions);
         feedbackPanel.Children.Add(Label("Rückmeldung: Wie ist es nach den Empfehlungen?")); feedbackPanel.Children.Add(outcome);
-        feedbackPanel.Children.Add(Label("Notiz (optional)")); feedbackPanel.Children.Add(feedbackNote); feedbackPanel.Children.Add(feedback);
+        feedbackPanel.Children.Add(Label("Notiz (optional)")); feedbackPanel.Children.Add(feedbackNote); feedbackPanel.Children.Add(feedbackReview); feedbackPanel.Children.Add(feedbackDisclosure); feedbackPanel.Children.Add(feedbackPreview); feedbackPanel.Children.Add(feedback);
         casePanel.Children.Add(feedbackPanel);
 
         foreach (var (name, element) in new (string, FrameworkElement)[] { ("RemoteServer", server), ("RemoteInvitation", invitation), ("RemotePair", pair), ("RemoteUnpair", unpair), ("RemoteCategory", category),
             ("RemoteDescription", description), ("RemoteSteps", steps), ("RemoteNotice", notice), ("RemotePreview", preview), ("RemoteExternalAi", externalAi), ("RemoteConsent", consent), ("RemoteSend", send),
-            ("RemoteExport", export), ("RemoteResult", result), ("RemoteRefresh", refresh), ("RemoteDelete", delete), ("RemoteFeedback", feedback), ("RemoteStatus", status), ("RemoteCaseStatus", caseStatus) })
+            ("RemoteFeedbackReview", feedbackReview), ("RemoteFeedbackPreview", feedbackPreview), ("RemoteFeedbackNote", feedbackNote), ("RemoteReview", review), ("RemoteDisclosure", disclosure), ("RemotePreviewStage", previewStage), ("RemoteCancelUpload", cancelUpload), ("RemoteWow", wow), ("RemoteGameBuild", gameBuild), ("RemoteScope", scope), ("RemoteAddons", addons), ("RemoteExport", export), ("RemoteResult", result), ("RemoteRefresh", refresh), ("RemoteDelete", delete), ("RemoteFeedback", feedback), ("RemoteStatus", status), ("RemoteCaseStatus", caseStatus) })
             RegisterName(name, element);
 
         // Any edit rebuilds the preview, which withdraws the consent.
         description.TextChanged += (_, _) => Rebuild(); steps.TextChanged += (_, _) => Rebuild(); gameBuild.TextChanged += (_, _) => Rebuild();
         category.SelectionChanged += (_, _) => Rebuild(); scope.SelectionChanged += (_, _) => Rebuild(); addons.SelectionChanged += (_, _) => Rebuild();
         wow.Checked += (_, _) => Rebuild(); wow.Unchecked += (_, _) => Rebuild();
-        consent.Checked += (_, _) => Render(); consent.Unchecked += (_, _) => Render();
+        externalAi.Checked += (_, _) => Rebuild(); externalAi.Unchecked += (_, _) => Rebuild();
+        consent.Checked += (_, _) => Render(); consent.Unchecked += (_, _) => { if (!rendering && !working) Rebuild(); else Render(); };
+        server.TextChanged += (_, _) => { if (!rendering && !working) { session.Invalidate(); consent.IsChecked = false; Render(); } };
 
-        pair.Click += async (_, _) => await Work(async () =>
+        pair.Click += async (_, _) =>
         {
-            if (await session.PairAsync(server.Text, invitation.Password)) { invitation.Clear(); await session.LoadCapabilitiesAsync(); Rebuild(); }
-        });
+            var connected = false;
+            await Work(async () =>
+            {
+                if (await session.PairAsync(server.Text, invitation.Password)) { invitation.Clear(); connected = await session.LoadCapabilitiesAsync(); }
+            }, "Einladung wird eingelöst / Datenschutzhinweis wird geladen – kein Diagnose-Upload …");
+            if (connected && !closed) Rebuild();
+        };
         unpair.Click += (_, _) => { poll.Stop(); session.Unpair(); Render(); };
-        send.Click += async (_, _) => await Work(async () => { if (consent.IsChecked == true && await session.ApproveAndSendAsync(externalAi.IsChecked == true)) await session.RefreshAsync(); });
-        export.Click += (_, _) => { session.Export(SaveFile); Render(); };
+        review.Click += (_, _) => { if (!working && consent.IsChecked == true) { session.Review(externalAi.IsChecked == true); Render(); } };
+        send.Click += async (_, _) =>
+        {
+            if (working || consent.IsChecked != true || !session.CanSend) return;
+            using var cancel = new CancellationTokenSource(); uploadCancellation = cancel;
+            try { await Work(() => session.SendReviewedAsync(cancel.Token), "Diagnosebericht wird hochgeladen …"); }
+            finally { uploadCancellation = null; if (!closed) Render(); }
+        };
+        cancelUpload.Click += (_, _) => uploadCancellation?.Cancel();
+        export.Click += (_, _) => { if (!working) session.Export(this.save); Render(); };
         refresh.Click += async (_, _) => await Work(() => session.RefreshAsync());
+        feedbackReview.Click += (_, _) => { if (!working) { session.ReviewFeedback(Outcomes[outcome.SelectedIndex], feedbackNote.Text); Render(); } };
+        feedbackNote.TextChanged += (_, _) => { if (!rendering && !working) { session.InvalidateFeedback(); Render(); } };
+        outcome.SelectionChanged += (_, _) => { if (!rendering && !working) { session.InvalidateFeedback(); Render(); } };
         feedback.Click += async (_, _) => await Work(async () => { if (await session.SendFeedbackAsync(Outcomes[outcome.SelectedIndex], feedbackNote.Text)) feedbackNote.Clear(); });
         delete.Click += async (_, _) =>
         {
@@ -136,25 +162,26 @@ public sealed class RemoteDiagnosisWindow : Window
             if (await session.LoadCapabilitiesAsync()) Rebuild();
             if (session.CaseRef != null) await session.RefreshAsync();
         });
-        Closed += (_, _) => poll.Stop();
+        Closed += (_, _) => { closed = true; poll.Stop(); uploadCancellation?.Cancel(); };
         Render();
     }
 
     static string AppVersion => typeof(RemoteDiagnosisWindow).Assembly.GetName().Version?.ToString(3) ?? "0.0.0";
 
     /// <summary>One network operation at a time; the UI stays responsive and is redrawn afterwards.</summary>
-    async Task Work(Func<Task> action)
+    async Task Work(Func<Task> action, string activity = "Verbindung / Statusabfrage – kein Diagnose-Upload …")
     {
-        if (working) return;
-        working = true; Render();
+        if (working || closed) return;
+        poll.Stop(); operation = activity; working = true; Render();
         try { await action(); }
-        finally { working = false; Render(); SchedulePoll(); }
+        catch { session.ReportUnexpectedFailure(); }
+        finally { working = false; if (!closed) { Render(); SchedulePoll(); } }
     }
 
     void SchedulePoll()
     {
         poll.Stop();
-        if (!IsLoaded || session.NextPoll(jitter.NextDouble()) is not { } delay) return;
+        if (closed || !IsLoaded || session.NextPoll(jitter.NextDouble()) is not { } delay) return;
         poll.Interval = delay; poll.Start();
     }
 
@@ -179,13 +206,18 @@ public sealed class RemoteDiagnosisWindow : Window
             pairingPanel.Visibility = Visible(!paired); unpair.Visibility = Visible(paired);
             wowPanel.Visibility = Visible(wow.IsChecked == true);
             notice.Text = session.Capabilities?.PrivacyNotice.Text ?? (paired ? "Der Datenschutzhinweis konnte noch nicht geladen werden. Ohne ihn wird nichts gesendet." : "Nach dem Verbinden erscheint hier der Datenschutzhinweis des Servers. Ohne Verbindung lässt sich die Vorschau nur lokal speichern.");
+            disclosure.Text = session.Disclosure;
             preview.Text = session.Preview ?? (scan == null ? "Für einen neuen Bericht zuerst den Dialog schließen und 'Jetzt prüfen' ausführen. Der Scan darf höchstens 15 Minuten alt sein."
                 : session.HasPendingUpload ? "Der Bericht wurde bereits zum Senden freigegeben und wird unverändert erneut gesendet." : "Noch keine gültige Vorschau.");
             externalAi.Visibility = Visible(session.Capabilities?.ExternalAiOffered == true);
-            if (session.Preview == null && !session.HasPendingUpload) consent.IsChecked = false;
-            send.Content = session.HasPendingUpload ? "Unverändert erneut senden" : "Zustimmen und senden";
+            if (session.Preview == null) consent.IsChecked = false;
+            previewStage.Text = session.HasFinalPreview ? "ENDGÜLTIGES JSON · einschließlich Zustimmung, UTC-Zeitpunkt und KI-Wahl. Bitte vollständig prüfen. Nur der separate Senden-Klick überträgt genau diese UTF-8-Bytes." : "ENTWURF · nicht sendbar (consent: null). Erst Angaben und Hinweis prüfen, Zustimmung ankreuzen und vorbereiten; danach vollständiges JSON prüfen und separat senden.";
+            send.Content = session.HasPendingUpload ? "Unverändert erneut senden" : "Genau dieses JSON jetzt senden";
             send.IsEnabled = !working && session.CanSend && (consent.IsChecked == true || session.HasPendingUpload);
-            export.IsEnabled = session.Preview != null;
+            export.IsEnabled = !working && session.Preview != null;
+            review.IsEnabled = !working && session.Paired && session.Capabilities != null && session.Preview != null && !session.HasFinalPreview && consent.IsChecked == true;
+            cancelUpload.Visibility = Visible(uploadCancellation != null); cancelUpload.IsEnabled = working;
+            foreach (var control in new UIElement[] { description, steps, gameBuild, category, scope, addons, wow, externalAi, consent, server, invitation, unpair, outcome, feedbackNote }) control.IsEnabled = !working;
             pair.IsEnabled = !working; refresh.IsEnabled = !working; delete.IsEnabled = !working;
 
             var reference = session.CaseRef;
@@ -194,8 +226,11 @@ public sealed class RemoteDiagnosisWindow : Window
             caseStatus.Text = reference == null ? "" : $"Gesendeter Scan vom {Local(reference.ScannedAt)} · wird am {Local(reference.ExpiresAt)} gelöscht."
                 + (session.IsCaseForOlderScan(scan?.ScannedAt) ? "\nAchtung: Es gibt inzwischen einen neueren lokalen Scan. Dieses Ergebnis gehört zum älteren Scan." : "");
             result.Text = released != null && reference != null ? RemoteText.Result(released, reference.ScannedAt) : "Noch kein freigegebenes Ergebnis.";
-            feedbackPanel.Visibility = Visible(released != null); feedback.IsEnabled = !working;
-            status.Text = working ? "Verbindung zum Server …" : session.Status;
+            feedbackPanel.Visibility = Visible(released != null); feedback.IsEnabled = !working && session.CanReviewFeedback && session.FeedbackPreview != null;
+            feedbackReview.IsEnabled = !working && session.CanReviewFeedback;
+            feedbackPreview.Text = session.FeedbackPreview ?? "Noch keine endgültige Rückmeldung. Erst prüfen, dann separat senden.";
+            feedbackDisclosure.Text = "Empfänger: POST " + session.FeedbackEndpoint + "\nGenau dieses JSON wird gesendet: Ergebnis (outcome), optionale Notiz (note), angezeigte Ergebnisrevision (result_revision). Gleicher HTTPS-/Token-Transport und Aufbewahrung wie beim Fall. Kein erneuter Diagnosebericht.";
+            status.Text = working ? operation : session.Status;
         }
         finally { rendering = false; }
     }

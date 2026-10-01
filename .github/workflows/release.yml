@@ -94,6 +94,12 @@ jobs:
           if($LASTEXITCODE -ne 0){throw 'Debug branding tests failed.'}
           dotnet run --project tests/Branding/Branding.Tests.csproj -c Release
           if($LASTEXITCODE -ne 0){throw 'Release branding tests failed.'}
+      - name: Verify upload transparency with isolated synthetic WPF dialogs
+        run: |
+          dotnet run --project tests/RemoteTransparency/RemoteTransparency.csproj -c Debug
+          if($LASTEXITCODE -ne 0){throw 'Debug transparency tests failed.'}
+          dotnet run --project tests/RemoteTransparency/RemoteTransparency.csproj -c Release
+          if($LASTEXITCODE -ne 0){throw 'Release transparency tests failed.'}
       - name: Verify CI signing authorization without key access
         run: ./tests/Test-CISigningAuthorization.ps1
       - name: Verify uninstall workflow and lifecycle helpers without installation

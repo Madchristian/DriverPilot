@@ -32,6 +32,7 @@ static class ResponseTests
 
     public static string Run()
     {
+        Check(!RemoteText.Error(new RemoteApiException("invalid_request", 400, serverMessage: "RAW_RESPONSE_PRIVATE")).Contains("RAW_RESPONSE_PRIVATE"), "even schema-valid server error text is not echoed");
         string[] schemas = ["capabilities", "pairing-redeem-response", "case-accepted", "case", "result", "feedback-response", "error"];
         var count = 0;
         foreach (var schema in schemas)
@@ -72,7 +73,7 @@ static class ResponseTests
     }
 }
 
-static class SessionTests
+static partial class SessionTests
 {
     static readonly ContractRules Rules = ContractRules.Embedded;
     const string Token = "SYNTHETIC-access-token-not-a-secret-000000000000";
@@ -111,12 +112,109 @@ static class SessionTests
 
     public static async Task<string> Run()
     {
+        await PersistenceFailures();
+        await ProxyWriteUncertainty();
+        await FeedbackNoticeGate();
+        await ReviewBeforeUpload();
+        await ReviewInvalidation();
         await PairingAndStorage();
         await UploadRetryAndBinding();
         await ConsentRules();
         await CaseLifecycle();
         await Transport();
         return "PASS: pairing, protected token, frozen retry with same bytes and key, consent rules, result binding, polling, feedback, deletion, transport safety";
+    }
+
+    static async Task ProxyWriteUncertainty()
+    {
+        var world = new World();
+        var session = await Paired(world);
+        session.Prepare(Synthetic.Snapshot(), Synthetic.ScanId, Synthetic.ScannedAt, Synthetic.Symptom());
+        session.Review(false);
+        var preview = session.Preview;
+        foreach (var status in new[] { HttpStatusCode.BadGateway, HttpStatusCode.GatewayTimeout })
+        {
+            world.Server.Reply(status, Encoding.UTF8.GetBytes("<html>PRIVATE_PROXY</html>"), contentType: "text/html");
+            Check(!await session.SendReviewedAsync() && session.HasPendingUpload, "proxy failure retains reviewed write");
+            Check(session.Status.Contains("möglicherweise") && !session.Status.Contains("nichts gespeichert") && !session.Status.Contains("PRIVATE_PROXY"), "proxy write result is uncertain, not uncommitted");
+        }
+        var attempts = world.Server.Requests.TakeLast(2).ToArray();
+        Check(attempts[0].IdempotencyKey == attempts[1].IdempotencyKey && attempts.All(a => Encoding.UTF8.GetString(a.Body) == preview), "proxy retry exact preview and key");
+    }
+
+    static async Task FeedbackNoticeGate()
+    {
+        var world = new World();
+        await Paired(world);
+        var sha = new string('a', 64);
+        world.Store.State = world.Store.State with { Case = new(CaseId, Synthetic.ScanId.ToString(), sha, "2026-10-03T14:02:11Z", "2026-10-10T14:06:41Z") };
+        var session = world.Session();
+        world.Server.Fail();
+        Check(!await session.LoadCapabilitiesAsync(), "restored notice failure");
+        world.Server.Reply(HttpStatusCode.OK, CaseJson("released", sha, Result(sha), poll: null));
+        Check(await session.RefreshAsync(), "restored case loads despite failed notice");
+        var count = world.Server.Requests.Count;
+        Check(!session.ReviewFeedback("unchanged", "Test") && !await session.SendFeedbackAsync("unchanged", "Test") && world.Server.Requests.Count == count, "feedback fails closed without loaded notice");
+        world.Server.Reply(HttpStatusCode.OK, Contract.Fixture("valid/capabilities/pilot.json"));
+        Check(await session.LoadCapabilitiesAsync() && session.ReviewFeedback("unchanged", "Test"), "loaded notice authorizes local review");
+        world.Server.Fail();
+        Check(!await session.LoadCapabilitiesAsync() && session.FeedbackPreview == null, "later failed reload withdraws feedback review");
+        count = world.Server.Requests.Count;
+        Check(!session.ReviewFeedback("unchanged", "Test") && !await session.SendFeedbackAsync("unchanged", "Test") && world.Server.Requests.Count == count, "later notice failure blocks new review and send");
+    }
+
+    static async Task ReviewBeforeUpload()
+    {
+        var world = new World();
+        var session = await Paired(world);
+        session.Prepare(Synthetic.Snapshot(), Synthetic.ScanId, Synthetic.ScannedAt, Synthetic.Symptom());
+        var before = world.Server.Requests.Count;
+        world.Server.Fail();
+        await session.SendReviewedAsync();
+        Check(world.Server.Requests.Count == before, "draft alone cannot upload: consent bytes must be displayed before the separate send click");
+    }
+
+    static async Task ReviewInvalidation()
+    {
+        var world = new World();
+        var session = await Paired(world);
+        void Prepare() => session.Prepare(Synthetic.Snapshot(), Synthetic.ScanId, Synthetic.ScannedAt, Synthetic.Symptom());
+        Prepare();
+        var before = world.Server.Requests.Count;
+        Check(session.Review(true) && session.CanSend && !session.HasPendingUpload, "local final review available before first attempt");
+        var preview = session.Preview!;
+        Check(preview.Contains("\"consent\"") && world.Server.Requests.Count == before, "complete final preview created without network");
+        string? exported = null;
+        Check(session.Export(t => { exported = t; return true; }) && exported == preview, "final export is exactly reviewed JSON");
+        world.Now = world.Now.AddSeconds(5);
+        world.Server.Fail();
+        await session.SendReviewedAsync();
+        Check(Encoding.UTF8.GetString(world.Server.Requests[^1].Body) == preview, "first send creates no unseen timestamp or fields");
+        session.Unpair();
+        Check(session.Preview == null && !session.HasFinalPreview && !session.Review(false), "unpair clears report, approval and frozen bytes");
+
+        session = await Paired(world); Prepare(); session.Review(false);
+        var changed = JsonNode.Parse(Contract.Fixture("valid/capabilities/pilot.json"))!;
+        changed["privacy_notice"]!["text"] = "Changed notice with unchanged version";
+        world.Server.Reply(HttpStatusCode.OK, changed.ToJsonString());
+        await session.LoadCapabilitiesAsync();
+        Check(!session.HasFinalPreview && session.Preview == null, "notice content change invalidates even with unchanged version");
+        Prepare(); session.Review(false);
+        Check(!session.Review(true) && !session.HasFinalPreview, "changing AI choice invalidates finalized review at session boundary");
+        Prepare(); session.Review(false);
+        world.Server.Reply(HttpStatusCode.OK, "{}");
+        await session.LoadCapabilitiesAsync();
+        Check(!session.CanSend && session.Preview == null, "malformed capabilities invalidate approval fail closed");
+        world.Server.Reply(HttpStatusCode.OK, Contract.Fixture("valid/capabilities/pilot.json"));
+        await session.LoadCapabilitiesAsync(); Prepare(); session.Review(false);
+        await session.PairAsync("http://invalid", Invitation);
+        Check(!session.HasFinalPreview, "even rejected recipient edit invalidates review");
+    }
+
+    static Task<bool> ReviewedSend(RemoteDiagnosisSession session, bool ai)
+    {
+        session.Review(ai);
+        return session.SendReviewedAsync();
     }
 
     static async Task PairingAndStorage()
@@ -148,17 +246,17 @@ static class SessionTests
     {
         var world = new World();
         var session = await Paired(world);
-        Check(session.Prepare(Synthetic.Snapshot(), Synthetic.ScanId, Synthetic.ScannedAt, Synthetic.Symptom()) && session.Preview != null && session.CanSend, "preview from fresh scan");
+        Check(session.Prepare(Synthetic.Snapshot(), Synthetic.ScanId, Synthetic.ScannedAt, Synthetic.Symptom()) && session.Preview != null && !session.CanSend, "preview from fresh scan");
 
         world.Server.Fail();
-        Check(!await session.ApproveAndSendAsync(true) && session.HasPendingUpload && session.Status.Contains("lokal gespeichert"), "network failure keeps the frozen request and points to the offline export");
+        Check(!await ReviewedSend(session, true) && session.HasPendingUpload && session.Status.Contains("lokal gespeichert"), "network failure keeps the frozen request and points to the offline export");
         world.Server.ReplyError(HttpStatusCode.ServiceUnavailable, "service_unavailable", 120);
-        Check(!await session.ApproveAndSendAsync(true) && session.HasPendingUpload && session.Status.Contains("2 Minute"), "503 keeps the frozen request");
+        Check(!await ReviewedSend(session, true) && session.HasPendingUpload && session.Status.Contains("2 Minute"), "503 keeps the frozen request");
         world.Now = world.Now.AddMinutes(30);
         var first = world.Server.Requests[^2];
         var sha = Convert.ToHexStringLower(SHA256.HashData(first.Body));
         world.Server.Reply(HttpStatusCode.Accepted, Accepted(sha));
-        Check(await session.ApproveAndSendAsync(true) && !session.HasPendingUpload, "retry succeeds even after the scan aged, because the first attempt may have been accepted");
+        Check(await ReviewedSend(session, true) && !session.HasPendingUpload, "retry succeeds even after the scan aged, because the first attempt may have been accepted");
 
         var attempts = world.Server.Requests.Where(r => r.Path.EndsWith("/api/v1/cases")).ToList();
         Check(attempts.Count == 3 && attempts.All(a => a.Body.AsSpan().SequenceEqual(first.Body) && a.IdempotencyKey == first.IdempotencyKey && a.Authorization == "Bearer " + Token), "all attempts carry identical bytes, key and token");
@@ -177,7 +275,7 @@ static class SessionTests
         var mismatch = await Paired(other);
         mismatch.Prepare(Synthetic.Snapshot(), Synthetic.ScanId, Synthetic.ScannedAt, Synthetic.Symptom());
         other.Server.Reply(HttpStatusCode.Accepted, Accepted(new string('0', 64)));
-        Check(!await mismatch.ApproveAndSendAsync(false) && mismatch.CaseRef == null && !mismatch.HasPendingUpload, "hash mismatch is refused");
+        Check(!await ReviewedSend(mismatch, false) && mismatch.CaseRef == null && !mismatch.HasPendingUpload, "hash mismatch is refused");
 
         // The next report of this client points to its predecessor.
         world.Now = Synthetic.ScannedAt.AddMinutes(1);
@@ -190,14 +288,14 @@ static class SessionTests
         var world = new World();
         var session = await Paired(world);
         var before = world.Server.Requests.Count;
-        Check(!await session.ApproveAndSendAsync(true) && world.Server.Requests.Count == before, "nothing is sent without a preview");
+        Check(!await ReviewedSend(session, true) && world.Server.Requests.Count == before, "nothing is sent without a preview");
 
         world.Now = Synthetic.ScannedAt.AddMinutes(16);
         Check(!session.Prepare(Synthetic.Snapshot(), Synthetic.ScanId, Synthetic.ScannedAt, Synthetic.Symptom()) && session.Preview == null, "scan older than 15 minutes gives no preview");
         world.Now = Synthetic.ScannedAt.AddMinutes(14);
         Check(session.Prepare(Synthetic.Snapshot(), Synthetic.ScanId, Synthetic.ScannedAt, Synthetic.Symptom()), "preview at 14 minutes");
         world.Now = Synthetic.ScannedAt.AddMinutes(16);
-        Check(!await session.ApproveAndSendAsync(true) && world.Server.Requests.Count == before && session.Preview == null, "scan that aged during the preview is not sent");
+        Check(!await ReviewedSend(session, true) && world.Server.Requests.Count == before && session.Preview == null, "scan that aged during the preview is not sent");
 
         world.Now = Synthetic.ScannedAt.AddMinutes(2);
         Check(!session.Prepare(Synthetic.Snapshot(), Synthetic.ScanId, Synthetic.ScannedAt, Synthetic.Symptom() with { Description = "Mail an alice@example.invalid" }) && !session.CanSend, "forbidden text gives no preview");
@@ -205,19 +303,19 @@ static class SessionTests
         // A definitive rejection consumes the consent: the same bytes are never offered again.
         session.Prepare(Synthetic.Snapshot(), Synthetic.ScanId, Synthetic.ScannedAt, Synthetic.Symptom());
         world.Server.ReplyError(HttpStatusCode.UnprocessableEntity, "privacy_notice_outdated");
-        Check(!await session.ApproveAndSendAsync(false) && !session.HasPendingUpload && session.Preview == null && session.Status.Contains("Datenschutzhinweis"), "422 discards the frozen request");
+        Check(!await ReviewedSend(session, false) && !session.HasPendingUpload && session.Preview == null && session.Status.Contains("Datenschutzhinweis"), "422 discards the frozen request");
         using (var sent = JsonDocument.Parse(world.Server.Requests[^1].Body))
             Check(!sent.RootElement.GetProperty("consent").GetProperty("external_ai_allowed").GetBoolean(), "external AI stays off unless chosen");
 
         // Editing after a failed attempt creates a new request instead of reusing the old consent.
         session.Prepare(Synthetic.Snapshot(), Synthetic.ScanId, Synthetic.ScannedAt, Synthetic.Symptom());
         world.Server.Fail();
-        await session.ApproveAndSendAsync(false);
+        await ReviewedSend(session, false);
         var firstKey = world.Server.Requests[^1].IdempotencyKey;
         session.Prepare(Synthetic.Snapshot(), Synthetic.ScanId, Synthetic.ScannedAt, Synthetic.Symptom() with { Description = "Anderer Text" });
         Check(!session.HasPendingUpload, "editing invalidates the frozen request");
         world.Server.Fail();
-        await session.ApproveAndSendAsync(false);
+        await ReviewedSend(session, false);
         Check(world.Server.Requests[^1].IdempotencyKey != firstKey, "changed report gets a new idempotency key");
 
         // Server without AI offer: the flag is forced off even if the caller passes true.
@@ -231,7 +329,7 @@ static class SessionTests
         await manualSession.LoadCapabilitiesAsync();
         manualSession.Prepare(Synthetic.Snapshot(), Synthetic.ScanId, Synthetic.ScannedAt, Synthetic.Symptom());
         manual.Server.Fail();
-        await manualSession.ApproveAndSendAsync(true);
+        await ReviewedSend(manualSession, true);
         using (var sent = JsonDocument.Parse(manual.Server.Requests[^1].Body))
             Check(!sent.RootElement.GetProperty("consent").GetProperty("external_ai_allowed").GetBoolean(), "AI flag cannot be set when the server does not offer it");
 
@@ -247,14 +345,14 @@ static class SessionTests
         var probeSession = await Paired(probe);
         probeSession.Prepare(Synthetic.Snapshot(), Synthetic.ScanId, Synthetic.ScannedAt, Synthetic.Symptom());
         probe.Server.Fail();
-        await probeSession.ApproveAndSendAsync(false);
+        await ReviewedSend(probeSession, false);
         var sha = Convert.ToHexStringLower(SHA256.HashData(probe.Server.Requests[^1].Body));
 
         var world = new World();
         var session = await Paired(world);
         session.Prepare(Synthetic.Snapshot(), Synthetic.ScanId, Synthetic.ScannedAt, Synthetic.Symptom());
         world.Server.Reply(HttpStatusCode.Accepted, Accepted(sha));
-        Check(await session.ApproveAndSendAsync(false), "case accepted");
+        Check(await ReviewedSend(session, false), "case accepted");
         Check(session.NextPoll(0) == TimeSpan.FromSeconds(10), "polling starts at 10 seconds");
 
         world.Server.Reply(HttpStatusCode.OK, CaseJson("awaiting_review", sha, poll: 30), etag: "\"v1\"");
@@ -282,13 +380,29 @@ static class SessionTests
 
         Check(!await session.SendFeedbackAsync("unchanged", "Siehe https://example.invalid/log") && world.Server.Requests[^1].Method == HttpMethod.Get, "feedback note with URL is not sent");
         world.Server.Fail();
+        Check(!await session.SendFeedbackAsync("unchanged", "Weiterhin Absturz nach 20 Minuten.") && world.Server.Requests[^1].Method == HttpMethod.Get, "feedback requires a complete final preview before sending");
+        Check(session.ReviewFeedback("unchanged", "Weiterhin Absturz nach 20 Minuten."), "feedback review is local");
+        var feedbackPreview = session.FeedbackPreview;
         await session.SendFeedbackAsync("unchanged", "Weiterhin Absturz nach 20 Minuten.");
+        Check(session.ReviewFeedback("unchanged", "Weiterhin Absturz nach 20 Minuten."), "unchanged re-review after uncertain acceptance");
         world.Server.Reply(HttpStatusCode.Created, Contract.Fixture("valid/feedback-response/created.json"));
         Check(await session.SendFeedbackAsync("unchanged", "Weiterhin Absturz nach 20 Minuten."), "feedback retry succeeds");
         var feedback = world.Server.Requests.Where(r => r.Path.EndsWith("/feedback")).ToList();
+        Check(Encoding.UTF8.GetString(feedback[0].Body) == feedbackPreview, "feedback has no fields absent from final preview");
         Check(feedback.Count == 2 && feedback[0].IdempotencyKey == feedback[1].IdempotencyKey && feedback[0].Body.AsSpan().SequenceEqual(feedback[1].Body) && Contract.Conforms("feedback-request", feedback[0].Body)
               && feedback[0].Path == $"https://diagnose.example.invalid/api/v1/cases/{CaseId}/feedback", "feedback retry reuses key and bytes and conforms");
 
+        session.ReviewFeedback("unchanged", "Weitere Rückmeldung.");
+        world.Server.Fail();
+        await session.SendFeedbackAsync("unchanged", "Weitere Rückmeldung.");
+        var invalidatedFeedback = session.FeedbackPreview;
+        Check(invalidatedFeedback != null, "pending feedback remains reviewable after network failure");
+        var changedNotice = JsonNode.Parse(Contract.Fixture("valid/capabilities/pilot.json"))!;
+        changedNotice["privacy_notice"]!["text"] = "Changed feedback notice";
+        world.Server.Reply(HttpStatusCode.OK, changedNotice.ToJsonString());
+        await session.LoadCapabilitiesAsync();
+        Check(session.FeedbackPreview == null, "notice change invalidates feedback bytes as well as report approval");
+        Check(session.ReviewFeedback("unchanged", "Weiterhin Absturz nach 20 Minuten."), "feedback is reviewed again under changed notice");
         world.Server.Reply(HttpStatusCode.NoContent);
         Check(await session.DeleteCaseAsync() && session.CaseRef == null && session.Case == null && world.Store.State.Case == null && world.Server.Requests[^1].Method == HttpMethod.Delete && session.NextPoll(0) == null, "deletion removes the local reference and stops polling");
         Check(world.Store.State.Access != null, "deleting a case keeps the access");

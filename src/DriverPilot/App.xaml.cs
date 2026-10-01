@@ -7,6 +7,25 @@ public partial class App : System.Windows.Application
     protected override async void OnStartup(StartupEventArgs e)
     {
         // Isolated synthetic path: before base startup, mutex, Store, tray, timers or scans.
+        if(e.Args.Contains("--remote-transparency-test"))
+        {
+            ShutdownMode=ShutdownMode.OnExplicitShutdown;
+            var output=AppContext.BaseDirectory;
+            var index=Array.IndexOf(e.Args,"--remote-transparency-output");
+            if(index>=0 && index+1<e.Args.Length)output=Path.GetFullPath(e.Args[index+1]);
+            try
+            {
+                Directory.CreateDirectory(output);
+                File.WriteAllText(Path.Combine(output,"remote-transparency-test-results.txt"),await RemoteTransparencyTests.Run(output));
+                Shutdown(0);
+            }
+            catch(Exception ex)
+            {
+                try{File.WriteAllText(Path.Combine(output,"remote-transparency-test-failure.txt"),ex.ToString());}catch{}
+                Shutdown(1);
+            }
+            return;
+        }
         if(e.Args.Contains("--system-report-test"))
         {
             ShutdownMode=ShutdownMode.OnExplicitShutdown;

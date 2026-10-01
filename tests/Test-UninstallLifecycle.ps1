@@ -224,7 +224,9 @@ try{
  # These JSON fixtures must be valid for the actual GUI readers.
  Seed (Join-Path $userData 'chat.json') '"CI conversation"'
  foreach($name in @('history.json','observations.json','ai-actions.json','updates.json','manufacturers.json')){Seed (Join-Path $userData $name) '[]'}
- Seed (Join-Path $userData 'snapshot.json') '{}'
+ # {} parses as a non-null Snapshot with null collections. With CI-device blocked,
+ # RefreshControls dereferences Devices in the constructor, before Show/Scan.
+ Seed (Join-Path $userData 'snapshot.json') '{"Windows":"","Cpu":"","Board":"","Bios":"","RamGB":0,"Devices":[],"Findings":[],"Warnings":[]}'
  Initialize-LifecycleAutomation
  Enter-Maintenance
  try{

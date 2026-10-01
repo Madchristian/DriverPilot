@@ -9,6 +9,7 @@
     <Project Path="tests/RemoteDiagnosis/RemoteDiagnosis.csproj" />
     <Project Path="tests/RemoteTransparency/RemoteTransparency.csproj" />
     <Project Path="tests/SystemReport/SystemReport.csproj" />
+    <Project Path="tests/SnapshotStorage/SnapshotStorage.csproj" />
   </Folder>
   <Folder Name="/tests/AppIcon/">
     <Project Path="tests/AppIcon/AppIcon.Tests.csproj" />

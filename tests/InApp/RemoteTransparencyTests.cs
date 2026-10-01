@@ -80,6 +80,7 @@ public static class RemoteTransparencyTests
     }
     static async Task Geometry(RemoteDiagnosisWindow window, string output)
     {
+        await RemoteLayoutTests.Run(window, output);
         foreach (var (width, height, name) in new[] { (1000d, 860d, "default"), (760d, 620d, "minimum") })
         {
             window.Width = width; window.Height = height; window.UpdateLayout(); await Pump();

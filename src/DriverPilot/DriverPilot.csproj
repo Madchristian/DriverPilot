@@ -2,7 +2,7 @@
   <PropertyGroup>
     <OutputType>WinExe</OutputType><TargetFramework>net10.0-windows</TargetFramework>
     <UseWPF>true</UseWPF><UseWindowsForms>true</UseWindowsForms><Nullable>enable</Nullable><ImplicitUsings>enable</ImplicitUsings>
-    <AssemblyName>DriverPilot</AssemblyName><RootNamespace>DriverPilot</RootNamespace><Version>0.3.5</Version>
+    <AssemblyName>DriverPilot</AssemblyName><RootNamespace>DriverPilot</RootNamespace><Version>0.3.6</Version>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon>../../assets/branding/DriverPilot.ico</ApplicationIcon>
 

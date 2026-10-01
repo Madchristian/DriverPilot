@@ -23,6 +23,14 @@ internal static class Program
     {
         try
         {
+            const string candidateVersion = "0.3.6";
+            var project = XDocument.Parse(Resource("AppProject"));
+            Require(project.Descendants("Version").Single().Value == candidateVersion,
+                "candidate version is 0.3.6, distinct from signed 0.3.5 test installer");
+            var readme = Resource("Readme");
+            Require(readme.StartsWith("# DriverPilot " + candidateVersion + " — persönlicher Testkandidat") &&
+                readme.Contains("docs/releases/RELEASE-" + candidateVersion + ".md"),
+                "README candidate identity and release notes match application version");
             var source = XDocument.Parse(Resource("MainWindowXaml"));
             var title = source.Descendants(Ns + "TextBlock").Single(e => (string?)e.Attribute("Text") == "◈  DriverPilot");
             var author = title.ElementsAfterSelf().FirstOrDefault();

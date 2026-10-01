@@ -3,5 +3,7 @@
   <ItemGroup>
     <EmbeddedResource Include="../../src/DriverPilot/UI/MainWindow.xaml" LogicalName="MainWindowXaml" />
     <EmbeddedResource Include="../../src/DriverPilot/App.xaml" LogicalName="AppXaml" />
+    <EmbeddedResource Include="../../src/DriverPilot/DriverPilot.csproj" LogicalName="AppProject" />
+    <EmbeddedResource Include="../../README.md" LogicalName="Readme" />
   </ItemGroup>
 </Project>

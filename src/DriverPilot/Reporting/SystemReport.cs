@@ -194,16 +194,11 @@ public sealed class SystemReport
 
     static string ProductId(string? value)
     {
-        if (value == null || value.Length > 512) return "";
-        var pci = Regex.Match(value, @"\APCI\\VEN_([0-9A-F]{4})&DEV_([0-9A-F]{4})(?:&SUBSYS_([0-9A-F]{8}))?(?=&|\\|\z)", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
-        if (pci.Success)
-        {
-            // Reject a malformed SUBSYS instead of silently accepting just VEN/DEV.
-            if (value.Contains("&SUBSYS_", StringComparison.OrdinalIgnoreCase) && !pci.Groups[3].Success) return "";
-            return $"PCI\\VEN_{pci.Groups[1].Value}&DEV_{pci.Groups[2].Value}".ToUpperInvariant() + (pci.Groups[3].Success ? "&SUBSYS_" + pci.Groups[3].Value.ToUpperInvariant() : "");
-        }
-        var usb = Regex.Match(value, @"\AUSB\\VID_([0-9A-F]{4})&PID_([0-9A-F]{4})(?=&|\\|\z)", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
-        return usb.Success ? $"USB\\VID_{usb.Groups[1].Value}&PID_{usb.Groups[2].Value}".ToUpperInvariant() : "";
+        var id = HardwareId.Parse(value);
+        if (id == null) return "";
+        return id.Bus == "pci"
+            ? $"PCI\\VEN_{id.VendorId}&DEV_{id.ProductId}" + (id.SubsystemId != null ? "&SUBSYS_" + id.SubsystemId : "")
+            : $"USB\\VID_{id.VendorId}&PID_{id.ProductId}";
     }
 
     // Conservative heuristic, NOT a guarantee that arbitrary prose is anonymous.

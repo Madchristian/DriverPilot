@@ -112,6 +112,18 @@ public static class RemoteLayoutTests
             Contrast(value.Foreground,face.Background,"hover collapsed selected value");
         }
         finally { combo.SetValue(mouseKey,false); }
+        // The published test is launched with -WindowStyle Hidden in CI. Show()/layout
+        // and a rendered popup do not establish native keyboard activation. Request it
+        // explicitly, then let dispatcher/native activation settle before testing focus.
+        // Activate() can return false even when IsActive becomes true on the next turn.
+        window.Activate();
+        var activationDeadline = System.Diagnostics.Stopwatch.StartNew();
+        while (!window.IsActive && activationDeadline.Elapsed < TimeSpan.FromSeconds(2))
+        {
+            await Task.Delay(10);
+            await window.Dispatcher.InvokeAsync(() => {}, DispatcherPriority.ApplicationIdle);
+        }
+        Check(window.IsActive, "dialog activated for real keyboard focus within test deadline");
         combo.IsDropDownOpen=true; await Idle();
         foreach(var item in combo.Items)
         {

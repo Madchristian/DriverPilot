@@ -25,6 +25,7 @@ Require 'run: ./build/Build-Release.ps1 -Sign' 'Use signed packaging helper'
 foreach($test in @('Test-Pipeline','Test-Signing','Test-UninstallLifecycle')){
  Require ('powershell -NoProfile -ExecutionPolicy Bypass -File ./tests/'+$test+'\.ps1') "Separate PowerShell process required: $test"
 }
+Require 'powershell -NoProfile -ExecutionPolicy Bypass -File ./tests/Test-UninstallReceiptComposition\.ps1 -RequireProtectedFixtures\s+if\(\$LASTEXITCODE -ne 0\)\{throw' 'Composed receipt regression with real protected ACLs must gate CI'
 Require '(?s)name: Remove signing key and temporary trust\s+if: always\(\)\s+run: ./build/Remove-CISigning.ps1' 'Always cleanup signing state'
 Require '(?s)name: Upload validation diagnostics\s+if: always\(\)\s+uses: actions/upload-artifact@[0-9a-f]{40}' 'Always upload diagnostics using pinned action'
 Require 'artifacts/uninstall-tests/\*\*' 'Lifecycle evidence missing'

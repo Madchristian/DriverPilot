@@ -62,6 +62,8 @@ jobs:
           if($LASTEXITCODE -ne 0){throw 'Uninstall logging regression failed.'}
           powershell -NoProfile -ExecutionPolicy Bypass -File ./tests/Test-CISigningAuthorization.ps1
           if($LASTEXITCODE -ne 0){throw 'CI signing authorization regression failed.'}
+          powershell -NoProfile -ExecutionPolicy Bypass -File ./tests/Test-UninstallReceiptComposition.ps1 -RequireProtectedFixtures
+          if($LASTEXITCODE -ne 0){throw 'Composed receipt regression failed.'}
           powershell -NoProfile -ExecutionPolicy Bypass -File ./tests/helpers/Test-UninstallLifecycleHelpers.ps1
           if($LASTEXITCODE -ne 0){throw 'Lifecycle helper regression failed.'}
       - name: Check public signing certificate expiry

@@ -13,8 +13,8 @@ foreach($f in $ast.FindAll({param($n) $n -is [Management.Automation.Language.Fun
 $userRoot='C:\Users\Fixture\AppData\Local\DriverPilot';$shared='C:\ProgramData\DriverPilot'
 Assert (@(Get-UninstallDataPlan $userRoot $shared).Count -eq 0) 'Default must preserve all data'
 $settings=@(Get-UninstallDataPlan $userRoot $shared -RemoveSettings)
-Assert ($settings.Path -contains "$userRoot\remote-diagnosis.json") 'Remote diagnosis local access belongs to settings'
-Assert ($settings.Path -contains "$userRoot\remote-diagnosis.json.tmp") 'Interrupted remote access saves belong to settings'
+Assert ($settings.Path -contains (Join-Path $userRoot 'remote-diagnosis.json')) 'Remote diagnosis local access belongs to settings'
+Assert ($settings.Path -contains (Join-Path $userRoot 'remote-diagnosis.json.tmp')) 'Interrupted remote access saves belong to settings'
 Assert ($settings.Count -eq 7) 'Settings allowlist includes remote access, atomic-save leftovers and the dedicated Codex home'
 Assert ($settings.Path -contains "$userRoot\preferences.json") 'Preferences selected'
 Assert ($settings.Path -contains "$userRoot\controls.json") 'Controls selected'
@@ -229,8 +229,8 @@ $text=[IO.File]::ReadAllText($source)
 Assert ($text.Contains('Global\DriverPilot.AuthenticatedAppUpdate') -and $text.Contains('Local\DriverPilot.Maintenance')) 'Shared lock names'
 Assert ($text.Contains('Global\DriverPilot.UninstallLifecycle') -and $text.Contains('Global\DriverPilot.Maintenance')) 'Cross-session startup and full-maintenance gates'
 $entryText=($ast.FindAll({param($n) $n -is [Management.Automation.Language.FunctionDefinitionAst] -and $n.Name -eq 'Invoke-DriverPilotUninstall'},$false))[0].Extent.Text
-Assert ($entryText.Contains('Read-UninstallReceipt') -and $entryText.Contains('Remove-UninstallReceiptPackages')) 'Entry point must consume persistent recovery authority'
-Assert ($entryText.IndexOf('Save-UninstallReceipt') -gt $entryText.IndexOf('# Re-read task') -and $entryText.IndexOf('Save-UninstallReceipt') -lt $entryText.IndexOf('Unregister-ScheduledTask')) 'Receipt must commit after all preflight and before task removal'
+Assert ($entryText.Contains('Invoke-UninstallReceiptPreflight') -and $entryText.Contains('Invoke-UninstallRemoval')) 'Entry point must consume composed persistent recovery authority'
+Assert ($entryText.IndexOf('Invoke-UninstallReceiptPreflight') -lt $entryText.IndexOf('Invoke-UninstallRemoval')) 'Composed receipt preflight must finish before task removal'
 Assert ($text.Contains('$env:PSModulePath=')) 'Windows PowerShell module resolution must ignore inherited PS7 paths'
 Assert (-not ($text -match 'Cert:\\|Stop-Process|taskkill|pnputil')) 'No trust store/driver/process-kill operations'
 Write-Output 'PASS lock contention/release and guarded entry point contract'

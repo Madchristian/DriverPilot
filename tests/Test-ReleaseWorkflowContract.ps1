@@ -18,4 +18,6 @@ $upload=$build.IndexOf('- name: Upload release files',[StringComparison]::Ordina
 if($install -lt 0 -or -not $app.Success -or $upload -lt 0 -or $install -ge $app.Index -or $app.Index -ge $upload){
  throw 'Fresh-runner installer checks must precede stateful app self-tests; both must gate release artifact upload.'
 }
+$composition=[regex]::Match($build,'powershell -NoProfile -ExecutionPolicy Bypass -File ./tests/Test-UninstallReceiptComposition\.ps1 -RequireProtectedFixtures\s+if\(\$LASTEXITCODE -ne 0\)\{throw')
+if(-not $composition.Success -or $composition.Index -ge $upload){throw 'Real protected receipt composition must gate build artifact upload with an explicit exit check.'}
 Write-Output 'PASS release dependencies and fresh-runner installer-before-self-test ordering (static only).'

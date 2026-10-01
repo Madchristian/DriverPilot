@@ -161,7 +161,7 @@ function Read-UninstallReceipt([string]$Path,[string]$ProgramFiles,[string]$Cert
  }
  return $receipt
 }
-function Save-UninstallReceipt([string]$Path,[string[]]$Packages,$Owner,[string]$CertificateHash='2C9F679EA51A77CDBC9D64E171B6C12FC9E31EBE623C8C6E357CDE5B6C9F929B',[switch]$Protected=$true){
+function Save-UninstallReceipt([string]$Path,[string[]]$Packages,$Owner,[string]$CertificateHash='2C9F679EA51A77CDBC9D64E171B6C12FC9E31EBE623C8C6E357CDE5B6C9F929B',[switch]$Protected=$true,[switch]$PassThru){
  Assert-UninstallReceiptLocation $Path -Protected:$Protected
  if(Test-Path -LiteralPath $Path){throw 'Removal receipt already exists.'}
  $inventory=@(foreach($package in $Packages){
@@ -172,11 +172,7 @@ function Save-UninstallReceipt([string]$Path,[string[]]$Packages,$Owner,[string]
  })
  $bytes=[Text.Encoding]::UTF8.GetBytes((@{Schema=1;OwnerSid=$Owner.Sid;OwnerProfilePath=$Owner.ProfilePath;Packages=$inventory}|ConvertTo-Json -Depth 5))
  if($bytes.Length -gt 16MB){throw 'Oversized removal receipt.'}
- if($Protected){
-  $acl=[Security.AccessControl.DirectorySecurity]::new()
-  $acl.SetSecurityDescriptorSddlForm('O:BAG:BAD:P(A;OICI;FA;;;SY)(A;OICI;FA;;;BA)')
-  [void][IO.Directory]::CreateDirectory((Split-Path $Path -Parent),$acl)
- }else{[void][IO.Directory]::CreateDirectory((Split-Path $Path -Parent))}
+ if($Protected){New-UninstallProtectedDirectory (Split-Path $Path -Parent)}else{[void][IO.Directory]::CreateDirectory((Split-Path $Path -Parent))}
  Assert-UninstallReceiptLocation $Path -Protected:$Protected
  $temporary=$Path+'.tmp'
  # A leftover temporary file never grants recovery authority. Full preflight above
@@ -185,6 +181,7 @@ function Save-UninstallReceipt([string]$Path,[string[]]$Packages,$Owner,[string]
  $stream=[IO.FileStream]::new($temporary,[IO.FileMode]::CreateNew,[IO.FileAccess]::Write,[IO.FileShare]::None)
  try{$stream.Write($bytes,0,$bytes.Length);$stream.Flush($true)}finally{$stream.Dispose()}
  [IO.File]::Move($temporary,$Path)
+ if($PassThru){$sha=[Security.Cryptography.SHA256]::Create();try{return [BitConverter]::ToString($sha.ComputeHash($bytes)).Replace('-','')}finally{$sha.Dispose()}}
 }
 function Remove-UninstallReceiptPackages([string]$Path,[string]$ProgramFiles,[string]$CertificateHash='2C9F679EA51A77CDBC9D64E171B6C12FC9E31EBE623C8C6E357CDE5B6C9F929B',[switch]$Protected=$true){
  $receipt=Read-UninstallReceipt $Path $ProgramFiles -CertificateHash $CertificateHash -Protected:$Protected
@@ -240,8 +237,9 @@ function Remove-UninstallBoundedPath([string]$Path,[switch]$Directory){
 function Get-UninstallPackagePlan {
  [CmdletBinding()]
  param([string]$ProgramFiles,$Receipt=$null,[string]$CertificateHash='2C9F679EA51A77CDBC9D64E171B6C12FC9E31EBE623C8C6E357CDE5B6C9F929B',[switch]$Protected=$true)
- $packages=[Collections.Generic.List[string]]::new();$empty=[Collections.Generic.List[string]]::new()
+ $packages=[Collections.Generic.List[string]]::new();$empty=[Collections.Generic.List[string]]::new();$observed=[Collections.Generic.List[string]]::new()
  foreach($entry in Get-ChildItem -LiteralPath $ProgramFiles -Force | Where-Object {$_.Name -ieq 'DriverPilot' -or $_.Name -like 'DriverPilot.previous-*' -or $_.Name -like 'DriverPilot.next-*'}){
+  $observed.Add($entry.FullName)
   if(-not $entry.PSIsContainer -or $entry.Name -cnotmatch '\ADriverPilot(?:\.(?:previous|next)-[a-fA-F0-9]{32})?\z'){throw 'Unattributable DriverPilot recovery/staging path; manual review required.'}
   Assert-UninstallTree $entry.FullName -Protected:$Protected
   $prior=@($Receipt.Packages | Where-Object {$_.Name -ceq $entry.Name})
@@ -252,7 +250,7 @@ function Get-UninstallPackagePlan {
   }else{Assert-UninstallPackage $entry.FullName $CertificateHash}
   $packages.Add($entry.FullName)
  }
- return [pscustomobject]@{Packages=$packages.ToArray();EmptyStages=$empty.ToArray()}
+ return [pscustomobject]@{Packages=$packages.ToArray();EmptyStages=$empty.ToArray();ObservedPackages=$observed.ToArray()}
 }
 function Remove-UninstallEmptyStage([string]$Path,[switch]$Protected=$true){
  if((Split-Path $Path -Leaf) -cnotmatch '\ADriverPilot\.next-[a-fA-F0-9]{32}\z'){throw 'Invalid empty staging name.'}
@@ -286,22 +284,45 @@ function Assert-UninstallRuntimeIdle($Task){
  $processes=@(Get-CimInstance Win32_Process -Filter "Name='DriverPilot.exe'" -ErrorAction Stop)
  Assert-UninstallIdle $processes $Task
 }
-function Invoke-DriverPilotUninstall([switch]$RemoveSettings,[switch]$RemoveLogs,[switch]$RemoveBackups){
- $identity=[Security.Principal.WindowsIdentity]::GetCurrent()
- $principal=[Security.Principal.WindowsPrincipal]::new($identity)
- if(-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator) -or -not [Environment]::Is64BitProcess){throw 'Use elevated 64-bit Windows PowerShell.'}
- $programFiles=[Environment]::GetFolderPath('ProgramFiles')
- $shared=Join-Path ([Environment]::GetFolderPath('CommonApplicationData')) 'DriverPilot'
- $target=Join-Path $programFiles 'DriverPilot'
- $uninstaller=Join-Path $programFiles 'DriverPilot.Uninstall'
- if([IO.Path]::GetFullPath($PSScriptRoot).TrimEnd('\') -notin @($target,$uninstaller)){throw 'Run the protected installed uninstaller, not a portable copy.'}
- Assert-UninstallPath $programFiles;Assert-UninstallAcl (Get-Acl -LiteralPath $programFiles)
- Assert-UninstallTree $PSScriptRoot -Protected
- Initialize-UninstallNative
- $guards=[Collections.Generic.List[IDisposable]]::new()
- $integrationPins=[Collections.Generic.List[IDisposable]]::new()
+function New-UninstallProtectedDirectory([string]$Path){
+ Assert-UninstallPath $Path
+ if(-not (Test-Path -LiteralPath $Path)){
+  $acl=[Security.AccessControl.DirectorySecurity]::new()
+  $acl.SetSecurityDescriptorSddlForm('O:BAG:BAD:P(A;OICI;FA;;;SY)(A;OICI;FA;;;BA)')
+  [void][IO.Directory]::CreateDirectory($Path,$acl)
+ }
+ # Existing roots are verified, NEVER repaired.
+ Assert-UninstallAcl (Get-Acl -LiteralPath $Path)
+}
+function Get-UninstallRegisteredProfile([string]$OwnerSid){
+ $registered=(Get-ItemProperty -LiteralPath ('HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\ProfileList\'+$OwnerSid) -Name ProfileImagePath -ErrorAction Stop).ProfileImagePath
+ return [Environment]::ExpandEnvironmentVariables($registered)
+}
+function Test-UninstallShortcut([string]$Path,[string]$Target){
+ if(-not (Test-Path -LiteralPath $Path)){return $false}
+ $shell=New-Object -ComObject WScript.Shell
  try{
-  foreach($name in @('Global\DriverPilot.UninstallLifecycle','Global\DriverPilot.AuthenticatedAppUpdate','Global\DriverPilot.Maintenance','Local\DriverPilot.Maintenance','Local\DriverPilot.Desktop')){$guards.Add((Enter-UninstallLock $name))}
+  $shortcut=$shell.CreateShortcut($Path)
+  try{return $shortcut.TargetPath -ieq (Join-Path $Target 'DriverPilot.exe') -and $shortcut.WorkingDirectory -ieq $Target -and -not $shortcut.Arguments}finally{[void][Runtime.InteropServices.Marshal]::FinalReleaseComObject($shortcut)}
+ }finally{[void][Runtime.InteropServices.Marshal]::FinalReleaseComObject($shell)}
+}
+function Add-UninstallPreflightPins([string]$Path,[string]$Shared,$Pins){
+ # Every duplicate immediate-parent handle belongs to the same release set.
+ $sharedFull=[IO.Path]::GetFullPath($Shared).TrimEnd('\')
+ $paths=[Collections.Generic.List[string]]::new()
+ for($p=[IO.Path]::GetDirectoryName([IO.Path]::GetFullPath($Path));$p;$p=[IO.Path]::GetDirectoryName($p)){$paths.Insert(0,$p)}
+ foreach($p in $paths){
+  if(-not (Test-Path -LiteralPath $p)){break}
+  $pin=[DriverPilotUninstall.Native]::Pin($p)
+  if($p -ieq $sharedFull){$Pins.Shared.Add($pin)}else{$Pins.Persistent.Add($pin)}
+ }
+}
+function Get-UninstallPreflightState($Context,$Pins,[switch]$Fresh,[string]$CertificateHash='2C9F679EA51A77CDBC9D64E171B6C12FC9E31EBE623C8C6E357CDE5B6C9F929B'){
+ $programFiles=$Context.ProgramFiles;$shared=$Context.Shared;$target=Join-Path $programFiles 'DriverPilot'
+ $RemoveSettings=$Context.RemoveSettings;$RemoveLogs=$Context.RemoveLogs;$RemoveBackups=$Context.RemoveBackups
+ Assert-UninstallPath $programFiles;Assert-UninstallAcl (Get-Acl -LiteralPath $programFiles)
+ Assert-UninstallTree $Context.Uninstaller -Protected
+ Add-UninstallPreflightPins (Join-Path $shared 'UninstallPending') $shared $Pins
   $task=Get-UninstallTask
   Assert-UninstallRuntimeIdle $task
   # Authenticate retained copies after loading any committed recovery authority.
@@ -318,8 +339,9 @@ function Invoke-DriverPilotUninstall([switch]$RemoveSettings,[switch]$RemoveLogs
    }
   }
   $pending=Join-Path $shared 'UninstallPending'
-  $receipt=Read-UninstallReceipt $pending $programFiles
-  $packagePlan=Get-UninstallPackagePlan $programFiles $receipt
+  $receipt=Read-UninstallReceipt $pending $programFiles -CertificateHash $CertificateHash
+  if($Fresh){foreach($package in $receipt.Packages){Assert-UninstallPackage (Join-Path $programFiles $package.Name) $CertificateHash}}
+  $packagePlan=Get-UninstallPackagePlan $programFiles $receipt -CertificateHash $CertificateHash
   $packages=$packagePlan.Packages
   if($receipt){
    foreach($path in $packages){if((Split-Path $path -Leaf) -cnotin @($receipt.Packages.Name)){throw 'Package not authorized by pending removal receipt.'}}
@@ -328,29 +350,21 @@ function Invoke-DriverPilotUninstall([switch]$RemoveSettings,[switch]$RemoveLogs
   }
   $taskSid=if($task){ConvertTo-UninstallSid $task.Principal.UserId}else{''}
   $ownerSid=if($metadata -and $metadata.OwnerSid){ConvertTo-UninstallSid $metadata.OwnerSid}else{$taskSid}
-  if(-not $ownerSid -or $ownerSid -ne $identity.User.Value){throw 'Uninstall must run as the recorded installation owner; different-account elevation is unsupported.'}
-  $registered=(Get-ItemProperty -LiteralPath ('HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\ProfileList\'+$ownerSid) -Name ProfileImagePath -ErrorAction Stop).ProfileImagePath
-  $registered=[Environment]::ExpandEnvironmentVariables($registered)
-  $owner=Resolve-UninstallOwner $metadata $taskSid $identity.User.Value ([Environment]::GetFolderPath('UserProfile')) $registered
+  if(-not $ownerSid -or $ownerSid -ne $Context.CurrentSid){throw 'Uninstall must run as the recorded installation owner; different-account elevation is unsupported.'}
+  $registered=Get-UninstallRegisteredProfile $ownerSid
+  $owner=Resolve-UninstallOwner $metadata $taskSid $Context.CurrentSid $Context.CurrentProfile $registered
   if($task -and -not (Test-UninstallTask $task $target $owner.Sid)){throw 'Maintenance task does not match the installed app and owner.'}
   $userRoot=Join-Path $owner.ProfilePath 'AppData\Local\DriverPilot'
-  if((Join-Path ([Environment]::GetFolderPath('LocalApplicationData')) 'DriverPilot') -ine $userRoot){throw 'Redirected local application data is unsupported; nothing removed.'}
+  if((Join-Path $Context.LocalApplicationData 'DriverPilot') -ine $userRoot){throw 'Redirected local application data is unsupported; nothing removed.'}
   $shortcutPath=Join-Path $owner.ProfilePath 'AppData\Roaming\Microsoft\Windows\Start Menu\Programs\DriverPilot.lnk'
-  if((Join-Path ([Environment]::GetFolderPath('Programs')) 'DriverPilot.lnk') -ine $shortcutPath){throw 'Redirected Start Menu is unsupported; nothing removed.'}
+  if((Join-Path $Context.Programs 'DriverPilot.lnk') -ine $shortcutPath){throw 'Redirected Start Menu is unsupported; nothing removed.'}
   # Pin user-controlled ancestors before reading a shortcut or inspecting/removing selected data.
-  foreach($pin in (Enter-UninstallPathPins $shortcutPath)){$integrationPins.Add($pin)}
+  Add-UninstallPreflightPins $shortcutPath $shared $Pins
   Assert-UninstallPath $shortcutPath
-  $removeShortcut=$false
-  if(Test-Path -LiteralPath $shortcutPath){
-   $shell=New-Object -ComObject WScript.Shell
-   try{
-    $shortcut=$shell.CreateShortcut($shortcutPath)
-    try{$removeShortcut=$shortcut.TargetPath -ieq (Join-Path $target 'DriverPilot.exe') -and $shortcut.WorkingDirectory -ieq $target -and -not $shortcut.Arguments}finally{[void][Runtime.InteropServices.Marshal]::FinalReleaseComObject($shortcut)}
-   }finally{[void][Runtime.InteropServices.Marshal]::FinalReleaseComObject($shell)}
-  }
+  $removeShortcut=Test-UninstallShortcut $shortcutPath $target
   $dataPlan=@(Get-UninstallDataPlan $userRoot $shared -RemoveSettings:$RemoveSettings -RemoveLogs:$RemoveLogs -RemoveBackups:$RemoveBackups)
   foreach($entry in $dataPlan){
-   foreach($pin in (Enter-UninstallPathPins $entry.Path)){$integrationPins.Add($pin)}
+   Add-UninstallPreflightPins $entry.Path $shared $Pins
    Assert-UninstallTree $entry.Path
    if(Test-Path -LiteralPath $entry.Path){if([bool](Get-Item -LiteralPath $entry.Path -Force).PSIsContainer -ne $entry.Directory){throw 'Unexpected selected data type.'}}
   }
@@ -358,10 +372,57 @@ function Invoke-DriverPilotUninstall([switch]$RemoveSettings,[switch]$RemoveLogs
   $task=Get-UninstallTask
   if($task -and -not (Test-UninstallTask $task $target $owner.Sid)){throw 'Maintenance task changed during preflight.'}
   Assert-UninstallRuntimeIdle $task
-  if(-not $receipt){Save-UninstallReceipt $pending $packages $owner}
-  # Read back the exact committed authority before external integration changes.
-  $receipt=Read-UninstallReceipt $pending $programFiles
-  if(-not $receipt){throw 'Removal receipt commit could not be verified.'}
+  $authority=@(if($receipt){$receipt.Packages}else{foreach($package in $packages){
+   [pscustomobject]@{Name=(Split-Path $package -Leaf);Certificate=[Convert]::ToBase64String([IO.File]::ReadAllBytes((Join-Path $package 'DriverPilot.cer')));Manifest=[Convert]::ToBase64String([IO.File]::ReadAllBytes((Join-Path $package 'package-manifest.json')));Signature=[Convert]::ToBase64String([IO.File]::ReadAllBytes((Join-Path $package 'package-manifest.sig')))}
+  }})
+  return [pscustomobject]@{Authority=$authority;Owner=$owner;Receipt=$receipt;PackagePlan=$packagePlan;DataPlan=$dataPlan;Task=$task;RemoveShortcut=$removeShortcut;ShortcutPath=$shortcutPath}
+}
+function Get-UninstallPreflightBinding($State){
+ # Include even preserved/incomplete staging names: a newly appeared directory is
+ # not part of the reviewed plan, irrespective of whether it would be removed.
+ $authority=@($State.Authority|Sort-Object Name|ForEach-Object {[ordered]@{Name=$_.Name;Certificate=$_.Certificate;Manifest=$_.Manifest;Signature=$_.Signature}})
+ return ([ordered]@{Authority=$authority;Owner=$State.Owner;Packages=@($State.PackagePlan.Packages|Sort-Object);EmptyStages=@($State.PackagePlan.EmptyStages|Sort-Object);Observed=@($State.PackagePlan.ObservedPackages|Sort-Object);Data=@($State.DataPlan);Shortcut=$State.ShortcutPath;RemoveShortcut=$State.RemoveShortcut;TaskPresent=[bool]$State.Task}|ConvertTo-Json -Depth 8 -Compress)
+}
+function Invoke-UninstallReceiptPreflight($Context,$Pins,[string]$CertificateHash='2C9F679EA51A77CDBC9D64E171B6C12FC9E31EBE623C8C6E357CDE5B6C9F929B'){
+ $shared=$Context.Shared;$pending=Join-Path $shared 'UninstallPending'
+ try{
+  # These ancestors, including ProgramData, outlive BOTH phases and publication.
+  Add-UninstallPreflightPins $shared $shared $Pins
+  Add-UninstallPreflightPins (Join-Path $Context.ProgramFiles 'DriverPilot') $shared $Pins
+  Assert-UninstallPath $shared
+  Assert-UninstallAcl (Get-Acl -LiteralPath (Split-Path $shared -Parent)) -AllowChildCreation
+  New-UninstallProtectedDirectory $shared
+  # Never repair an unsafe existing root. Its ACL is the security boundary while
+  # its immediate-parent handles are absent; SYSTEM/Admin/TrustedInstaller trusted.
+  Assert-UninstallAcl (Get-Acl -LiteralPath $shared)
+  $phaseA=Get-UninstallPreflightState $Context $Pins -CertificateHash $CertificateHash
+  $binding=Get-UninstallPreflightBinding $phaseA
+  if($phaseA.Receipt){
+   # Existing recovery authority never opens the publication window.
+   $expectedHash=Get-UninstallHash $pending
+  }else{
+   foreach($pin in $Pins.Shared){$pin.Dispose()};$Pins.Shared.Clear()
+   $expectedHash=Save-UninstallReceipt $pending $phaseA.PackagePlan.Packages $phaseA.Owner -CertificateHash $CertificateHash -PassThru
+  }
+  # Reacquire first; repeat ALL checks, not merely receipt parsing. A newly
+  # committed receipt must NOT make missing payloads acceptable as partial recovery.
+  $phaseB=Get-UninstallPreflightState $Context $Pins -Fresh:(-not $phaseA.Receipt) -CertificateHash $CertificateHash
+  if(-not $phaseB.Receipt -or (Get-UninstallHash $pending) -cne $expectedHash){throw 'Removal receipt commit/binding could not be verified.'}
+  if((Get-UninstallPreflightBinding $phaseB) -cne $binding){throw 'Removal plan changed during receipt publication.'}
+  return $phaseB
+ }catch{
+  # No cleanup here: leave receipt, temp and payloads for a safe retry/manual review.
+  throw ('No destructive action begun. Removal recovery files were retained; retry after resolving the preflight failure. '+$_.Exception.Message)
+ }
+}
+
+function Set-UninstallStableDirectory {
+ $stable=[Environment]::GetFolderPath('System');Set-Location -LiteralPath $stable;[Environment]::CurrentDirectory=$stable
+}
+function Invoke-UninstallRemoval($Context,$State,[string]$CertificateHash='2C9F679EA51A77CDBC9D64E171B6C12FC9E31EBE623C8C6E357CDE5B6C9F929B'){
+ $programFiles=$Context.ProgramFiles;$target=Join-Path $programFiles 'DriverPilot'
+  $task=$state.Task;$owner=$state.Owner;$packagePlan=$state.PackagePlan;$dataPlan=$state.DataPlan;$removeShortcut=$state.RemoveShortcut;$shortcutPath=$state.ShortcutPath
+  $pending=Join-Path $Context.Shared 'UninstallPending'
   if($task){Unregister-ScheduledTask -TaskName 'DriverPilot Maintenance' -TaskPath '\' -Confirm:$false -ErrorAction Stop;if(Get-UninstallTask){throw 'Maintenance task removal could not be verified.'}}
   $run='HKCU:\Software\Microsoft\Windows\CurrentVersion\Run'
   if(Test-Path -LiteralPath $run){
@@ -374,12 +435,33 @@ function Invoke-DriverPilotUninstall([switch]$RemoveSettings,[switch]$RemoveLogs
   if($removeShortcut){Remove-UninstallBoundedPath $shortcutPath}
   foreach($entry in $dataPlan){Remove-UninstallBoundedPath $entry.Path -Directory:$entry.Directory}
   # Native cwd, not only PowerShell's provider location, must leave the application tree.
-  $stable=[Environment]::GetFolderPath('System');Set-Location -LiteralPath $stable;[Environment]::CurrentDirectory=$stable
+  Set-UninstallStableDirectory
   foreach($path in $packagePlan.EmptyStages){Remove-UninstallEmptyStage $path}
-  Remove-UninstallReceiptPackages $pending $programFiles
+  Remove-UninstallReceiptPackages $pending $programFiles -CertificateHash $CertificateHash
+}
+
+function Invoke-DriverPilotUninstall([switch]$RemoveSettings,[switch]$RemoveLogs,[switch]$RemoveBackups){
+ $identity=[Security.Principal.WindowsIdentity]::GetCurrent()
+ $principal=[Security.Principal.WindowsPrincipal]::new($identity)
+ if(-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator) -or -not [Environment]::Is64BitProcess){throw 'Use elevated 64-bit Windows PowerShell.'}
+ $programFiles=[Environment]::GetFolderPath('ProgramFiles')
+ $shared=Join-Path ([Environment]::GetFolderPath('CommonApplicationData')) 'DriverPilot'
+ $target=Join-Path $programFiles 'DriverPilot'
+ $uninstaller=Join-Path $programFiles 'DriverPilot.Uninstall'
+ if([IO.Path]::GetFullPath($PSScriptRoot).TrimEnd('\') -notin @($target,$uninstaller)){throw 'Run the protected installed uninstaller, not a portable copy.'}
+ Assert-UninstallPath $programFiles;Assert-UninstallAcl (Get-Acl -LiteralPath $programFiles)
+ Assert-UninstallTree $PSScriptRoot -Protected
+ Initialize-UninstallNative
+ $guards=[Collections.Generic.List[IDisposable]]::new()
+ $pins=[pscustomobject]@{Persistent=[Collections.Generic.List[IDisposable]]::new();Shared=[Collections.Generic.List[IDisposable]]::new()}
+ try{
+  foreach($name in @('Global\DriverPilot.UninstallLifecycle','Global\DriverPilot.AuthenticatedAppUpdate','Global\DriverPilot.Maintenance','Local\DriverPilot.Maintenance','Local\DriverPilot.Desktop')){$guards.Add((Enter-UninstallLock $name))}
+  $context=[pscustomobject]@{ProgramFiles=$programFiles;Shared=$shared;Uninstaller=$PSScriptRoot;CurrentSid=$identity.User.Value;CurrentProfile=[Environment]::GetFolderPath('UserProfile');LocalApplicationData=[Environment]::GetFolderPath('LocalApplicationData');Programs=[Environment]::GetFolderPath('Programs');RemoveSettings=[bool]$RemoveSettings;RemoveLogs=[bool]$RemoveLogs;RemoveBackups=[bool]$RemoveBackups}
+  $state=Invoke-UninstallReceiptPreflight $context $pins
+  Invoke-UninstallRemoval $context $state
   Write-Output 'DriverPilot removed. Unselected data and certificate stores were preserved.'
  }finally{
-  foreach($pin in $integrationPins){$pin.Dispose()}
+  foreach($pin in $pins.Shared){$pin.Dispose()};foreach($pin in $pins.Persistent){$pin.Dispose()}
   for($i=$guards.Count-1;$i -ge 0;$i--){try{$guards[$i].ReleaseMutex()}finally{$guards[$i].Dispose()}}
  }
 }

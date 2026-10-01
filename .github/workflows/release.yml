@@ -72,6 +72,8 @@ jobs:
         run: |
           powershell -NoProfile -ExecutionPolicy Bypass -File ./tests/Test-UninstallWorkflowContract.ps1
           if($LASTEXITCODE -ne 0){throw 'Uninstall workflow contract failed.'}
+          powershell -NoProfile -ExecutionPolicy Bypass -File ./tests/Test-UninstallWorkflowLineEndings.ps1
+          if($LASTEXITCODE -ne 0){throw 'Workflow line-ending regression failed.'}
           powershell -NoProfile -ExecutionPolicy Bypass -File ./tests/helpers/Test-UninstallLifecycleHelpers.ps1
           if($LASTEXITCODE -ne 0){throw 'Uninstall lifecycle helpers failed.'}
       - name: Check public signing certificate expiry

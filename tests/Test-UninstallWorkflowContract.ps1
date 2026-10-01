@@ -3,7 +3,7 @@ $ErrorActionPreference='Stop'
 $root=Split-Path $PSScriptRoot -Parent
 $path=Join-Path $root '.github/workflows/uninstall-validation.yml'
 if(-not(Test-Path -LiteralPath $path)){throw 'Manual uninstall validation workflow is missing.'}
-$workflow=Get-Content -LiteralPath $path -Raw
+$workflow=(Get-Content -LiteralPath $path -Raw).Replace("`r`n","`n")
 function Require([string]$Pattern,[string]$Message){if($workflow -notmatch $Pattern){throw $Message}}
 function Forbid([string]$Pattern,[string]$Message){if($workflow -match $Pattern){throw $Message}}
 Require '(?m)^  workflow_dispatch:' 'Manual dispatch trigger required'

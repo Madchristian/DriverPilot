@@ -45,7 +45,7 @@ public sealed class RemoteDiagnosisWindow : Window
     readonly CheckBox wow = new() { Content = Label("Angaben zu World of Warcraft mitsenden") }, externalAi = new(), consent = new();
     readonly TextBox notice = ReadOnly(110, false), preview = ReadOnly(230, true), result = ReadOnly(280, false);
     readonly Button pair = new() { Content = "Verbinden" }, unpair = new() { Content = "Zugang entfernen" };
-    readonly Button review = new() { Content = "Vorschau prüfen / Zustimmung" }, cancelUpload = new() { Content = "Upload abbrechen" };
+    readonly Button review = new() { Content = "1 · Endgültiges JSON vorbereiten" }, cancelUpload = new() { Content = "Upload abbrechen" };
     readonly Button send = new() { Content = "Genau dieses JSON jetzt senden", Background = new SolidColorBrush(Color.FromRgb(54, 107, 232)) }, export = new() { Content = "Vorschau lokal speichern …" };
     readonly TextBox feedbackPreview = ReadOnly(130, true);
     readonly TextBlock feedbackDisclosure = Note();
@@ -60,7 +60,9 @@ public sealed class RemoteDiagnosisWindow : Window
     public RemoteDiagnosisWindow(RemoteDiagnosisSession session, RemoteScan? scan, Func<string, bool?>? save = null)
     {
         this.session = session; this.scan = scan; this.save = save ?? SaveFile;
-        Title = "DriverPilot · Hilfe von Christian"; Width = 1000; Height = 860; MinWidth = 760; MinHeight = 620;
+        Title = "DriverPilot · Hilfe von Christian"; Width = 1000; Height = 940; MinWidth = 760; MinHeight = 620;
+        SourceInitialized += (_, _) => FitMonitor();
+        DpiChanged += (_, _) => Dispatcher.BeginInvoke(new Action(FitMonitor));
         WindowStartupLocation = WindowStartupLocation.CenterOwner;
         Background = new SolidColorBrush(Color.FromRgb(11, 20, 35));
         NameScope.SetNameScope(this, new NameScope());
@@ -69,7 +71,13 @@ public sealed class RemoteDiagnosisWindow : Window
         var bottom = new StackPanel { Margin = new Thickness(0, 10, 0, 0) }; DockPanel.SetDock(bottom, Dock.Bottom); root.Children.Add(bottom);
         var close = new Button { Content = "Schließen", IsCancel = true, HorizontalAlignment = System.Windows.HorizontalAlignment.Left };
         close.Click += (_, _) => Close();
-        bottom.Children.Add(status); bottom.Children.Add(close);
+        bottom.Children.Add(consent);
+        var primaryActions = new WrapPanel { Margin = new Thickness(0, 0, 0, 8) };
+        primaryActions.Children.Add(review); primaryActions.Children.Add(send);
+        bottom.Children.Add(primaryActions);
+        var secondaryActions = new WrapPanel();
+        secondaryActions.Children.Add(export); secondaryActions.Children.Add(cancelUpload); secondaryActions.Children.Add(close);
+        bottom.Children.Add(status); bottom.Children.Add(secondaryActions);
 
         var page = new StackPanel();
         root.Children.Add(new ScrollViewer { Content = page, VerticalScrollBarVisibility = ScrollBarVisibility.Auto });
@@ -99,10 +107,9 @@ public sealed class RemoteDiagnosisWindow : Window
         reportPanel.Children.Add(disclosure);
         externalAi.Content = Label("Zusätzlich erlauben: Eine externe KI darf einen Entwurf erstellen, den Christian prüft. Ohne Haken bearbeitet nur Christian den Bericht.");
         consent.Content = Label("Ich habe Entwurf und Datenschutzhinweis geprüft. Meine Zustimmung für diesen Bericht vorbereiten; noch nichts senden.");
-        reportPanel.Children.Add(externalAi); reportPanel.Children.Add(consent);
-        reportPanel.Children.Add(review);
+        reportPanel.Children.Add(externalAi);
         reportPanel.Children.Add(previewStage); reportPanel.Children.Add(preview);
-        var sendActions = new WrapPanel(); sendActions.Children.Add(send); sendActions.Children.Add(export); sendActions.Children.Add(cancelUpload); reportPanel.Children.Add(sendActions);
+
 
         page.Children.Add(casePanel);
         casePanel.Children.Add(Heading("4 · Dein Fall"));
@@ -167,6 +174,21 @@ public sealed class RemoteDiagnosisWindow : Window
     }
 
     static string AppVersion => typeof(RemoteDiagnosisWindow).Assembly.GetName().Version?.ToString(3) ?? "0.0.0";
+
+    void FitMonitor()
+    {
+        var area = System.Windows.Forms.Screen.FromHandle(new System.Windows.Interop.WindowInteropHelper(this).Handle).WorkingArea;
+        var dpi = VisualTreeHelper.GetDpi(this);
+        FitWorkArea(area.Width / dpi.DpiScaleX, area.Height / dpi.DpiScaleY);
+    }
+
+    // WorkingArea is physical pixels; WPF sizing (including the non-client frame) is DIPs.
+    void FitWorkArea(double width, double height)
+    {
+        MinWidth = Math.Min(760, width); MinHeight = Math.Min(620, height);
+        MaxWidth = width; MaxHeight = height;
+        Width = Math.Min(Width, width); Height = Math.Min(Height, height);
+    }
 
     /// <summary>One network operation at a time; the UI stays responsive and is redrawn afterwards.</summary>
     async Task Work(Func<Task> action, string activity = "Verbindung / Statusabfrage – kein Diagnose-Upload …")
@@ -248,7 +270,11 @@ public sealed class RemoteDiagnosisWindow : Window
         => new() { IsReadOnly = true, TextWrapping = TextWrapping.Wrap, Height = height, Padding = new Thickness(8), FontSize = 12, Margin = new Thickness(0, 0, 0, 10),
             VerticalScrollBarVisibility = ScrollBarVisibility.Auto, FontFamily = new FontFamily(monospace ? "Consolas" : "Segoe UI") };
     static ComboBox Choice(IEnumerable<string> labels, int selected = 0)
-        => new() { ItemsSource = labels.ToList(), SelectedIndex = selected, FontSize = 13, Padding = new Thickness(8, 6, 8, 6), Margin = new Thickness(0, 0, 0, 10), HorizontalAlignment = System.Windows.HorizontalAlignment.Left, MinWidth = 320 };
+    {
+        var choice = new ComboBox { ItemsSource = labels.ToList(), SelectedIndex = selected, FontSize = 13, Padding = new Thickness(8, 6, 8, 6), Margin = new Thickness(0, 0, 0, 10), HorizontalAlignment = System.Windows.HorizontalAlignment.Left, MinWidth = 320 };
+        choice.SetResourceReference(StyleProperty, "RemoteChoice");
+        return choice;
+    }
 
     static bool? SaveFile(string text)
     {

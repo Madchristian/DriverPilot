@@ -1,4 +1,6 @@
-# DriverPilot 0.3.4
+# DriverPilot 0.3.5 — persönlicher Testkandidat
+
+**Nicht veröffentlicht und nicht für den Produktivbetrieb freigegeben.** Dieser Quellstand bereitet 0.3.5 für Christians persönlichen Test vor. Der lokale Build ist unsigniert, nicht installierbar und nicht als App-Update verwendbar. Die Start-/Installationsanleitung unten gilt für unabhängig geprüfte signierte Releases, nicht für diesen Entwicklungskandidaten. Umfang und offene Freigaben: [Testkandidat 0.3.5](docs/releases/RELEASE-0.3.5.md).
 
 Die veröffentlichte Version [0.3.4](https://github.com/Madchristian/DriverPilot/releases/tag/v0.3.4) ergänzt herstellerunabhängige Hardwareprofile, datensparsame Systemberichte und das neue Chip-Icon. Release-Dateien sind seit 0.3.2 signiert, das vollständige App-Updateinventar ist seit 0.3.3 durch ein signiertes Manifest authentifiziert. Migration von veröffentlichten Versionen bis 0.3.2 nur über den unabhängig geprüften signierten Installer. Nachweise und Testgrenzen: [aktueller Validierungsbericht](https://github.com/Madchristian/DriverPilot/blob/main/docs/validation/VALIDATION-SIGNED.md), [Release-Notizen](https://github.com/Madchristian/DriverPilot/blob/main/docs/releases/RELEASE-0.3.4.md) und [Update-Sicherheit](https://github.com/Madchristian/DriverPilot/blob/main/docs/security/UPDATE-SECURITY.md). Spätere CI-/Betriebsänderungen auf main sind nicht automatisch Bestandteil des veröffentlichten Tags.
 
@@ -150,13 +152,13 @@ Quellen: https://learn.chatgpt.com/docs/app-server und https://learn.microsoft.c
 
 ## Repository und Release
 
-GitHub Actions baut und testet Pushes auf `main`, Pull Requests gegen `main`, Versionstags und manuell gestartete Läufe. Beliebige andere Branch-Pushes starten diesen Workflow nicht automatisch. Nach erfolgreichem signiertem Build-Job steht unter **Actions → Windows build and release** das Artefakt `windows-x64-release` 14 Tage zum Download bereit. Es enthält die Setup-EXE, das portable ZIP, `SHA256SUMS.txt`, `DriverPilot.cer` und `ZERTIFIKAT-ANLEITUNG.txt`. Die Veröffentlichung eines Tags setzt zusätzlich den erfolgreichen Upgrade-Job voraus.
+GitHub Actions baut und testet Pushes auf `main`, Pull Requests gegen `main`, Versionstags und manuell gestartete Läufe. Beliebige andere Branch-Pushes starten diesen Workflow nicht automatisch. Nach erfolgreichem signiertem Build-Job steht unter **Actions → Windows build and release** das Artefakt `windows-x64-release` 14 Tage zum Download bereit. Es enthält die Setup-EXE, das portable ZIP, `SHA256SUMS.txt`, `DriverPilot.cer` und `ZERTIFIKAT-ANLEITUNG.txt`. Die Veröffentlichung eines Tags setzt zusätzlich erfolgreiche Upgrade- und Vertragsprüfungs-Jobs voraus.
 
 | Laufart | Produktionssignierung und Ausgabe |
 | --- | --- |
 | PR, main-Push oder manueller Lauf mit `sign=false` | Unsigniertes Entwicklungsprogramm; keine Release-ZIPs/Installer und kein `windows-x64-release`. Sicherheitstests nutzen kurzlebige Testschlüssel. |
 | Manueller Lauf auf `main` mit `sign=true` | Signierter Testbuild einschließlich Signatur-/Manipulations- und Installerprüfung; Download als Actions-Artefakt, **kein GitHub Release**. |
-| Push eines passenden `v*`-Versionstags | Signierte Release-Dateien; Veröffentlichung erst nach erfolgreichen Build- und Upgrade-Jobs. |
+| Push eines passenden `v*`-Versionstags | Signierte Release-Dateien; Veröffentlichung erst nach erfolgreichen Build-, Upgrade- und Vertragsprüfungs-Jobs. |
 
 Signierte Testbuilds bewusst über **Actions → Windows build and release → Run workflow → main → sign** starten. Auf einem anderen Branch wird auch bei `sign=true` kein Produktionsschlüssel verwendet. Testartefakte sind nicht mit einem veröffentlichten Release gleichzusetzen. Der separate Upgrade-Job verwendet immer einen kurzlebigen Testschlüssel; sein `app-upgrade-evidence`-Artefakt ist ebenfalls 14 Tage verfügbar, auch bei Fehlern.
 

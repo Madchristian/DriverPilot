@@ -23,7 +23,7 @@ concurrency:
 jobs:
   contract:
     name: Remote diagnosis contract
-    # Separate job without secrets: third-party Python packages never share a runner with the signing key.
+    # Separate job without secrets: third-party Python and NuGet packages never share a runner with the signing key.
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -35,6 +35,11 @@ jobs:
           python3 -m venv "$RUNNER_TEMP/contract-venv"
           "$RUNNER_TEMP/contract-venv/bin/pip" install --quiet -r contracts/remote-diagnosis/requirements.txt
           "$RUNNER_TEMP/contract-venv/bin/python" contracts/remote-diagnosis/validate_contract.py
+      - uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4
+        with:
+          dotnet-version: '10.0.x'
+      - name: Client conformance against schemas and fixtures
+        run: dotnet run --project tests/RemoteDiagnosis/RemoteDiagnosis.csproj
 
   app-upgrade:
     name: Signed app upgrade and recovery

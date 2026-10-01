@@ -2,6 +2,25 @@ namespace DriverPilot;
 
 public record HardwareProfile(string SystemManufacturer="", string SystemModel="", string BoardManufacturer="", string BoardModel="", string BoardRevision="", string BiosVersion="", string BiosDate="", string Architecture="", string WindowsBuild="", bool IsPortable=false);
 
+/// <summary>Model part of a Windows hardware ID. The instance suffix (often a serial number) is never returned.</summary>
+public sealed record HardwareId(string Bus,string VendorId,string ProductId,string? SubsystemId)
+{
+    public static HardwareId? Parse(string? instanceId)
+    {
+        if(instanceId==null||instanceId.Length>512)return null;
+        const System.Text.RegularExpressions.RegexOptions options=System.Text.RegularExpressions.RegexOptions.IgnoreCase|System.Text.RegularExpressions.RegexOptions.CultureInvariant;
+        var pci=System.Text.RegularExpressions.Regex.Match(instanceId,@"\APCI\\VEN_([0-9A-F]{4})&DEV_([0-9A-F]{4})(?:&SUBSYS_([0-9A-F]{8}))?(?=&|\\|\z)",options);
+        if(pci.Success)
+        {
+            // Reject a malformed SUBSYS instead of silently accepting just VEN/DEV.
+            if(instanceId.Contains("&SUBSYS_",StringComparison.OrdinalIgnoreCase)&&!pci.Groups[3].Success)return null;
+            return new("pci",pci.Groups[1].Value.ToUpperInvariant(),pci.Groups[2].Value.ToUpperInvariant(),pci.Groups[3].Success?pci.Groups[3].Value.ToUpperInvariant():null);
+        }
+        var usb=System.Text.RegularExpressions.Regex.Match(instanceId,@"\AUSB\\VID_([0-9A-F]{4})&PID_([0-9A-F]{4})(?=&|\\|\z)",options);
+        return usb.Success?new("usb",usb.Groups[1].Value.ToUpperInvariant(),usb.Groups[2].Value.ToUpperInvariant(),null):null;
+    }
+}
+
 public record ManufacturerRoute(string Vendor,string Model,string SourceUrl,string BiosGuideUrl,bool ExactModelVerified,bool IsOem,string Reason);
 
 // Every module returns detection, official source and support level through the same contract.
@@ -35,7 +54,7 @@ public static class ManufacturerRouting
         new PortalModule("Acer","https://www.acer.com/support/drivers-and-manuals")];
 
     static string Clean(string? value)=>System.Text.RegularExpressions.Regex.Replace(value??"",@"\s+"," ").Trim();
-    static bool Placeholder(string? value)=>Clean(value).TrimEnd('.').ToUpperInvariant() is "" or "UNKNOWN" or "NONE" or "N/A" or "DEFAULT STRING" or "SYSTEM PRODUCT NAME" or "SYSTEM MANUFACTURER" or "SYSTEM MODEL" or "TO BE FILLED BY O.E.M" or "NOT APPLICABLE";
+    internal static bool Placeholder(string? value)=>Clean(value).TrimEnd('.').ToUpperInvariant() is "" or "UNKNOWN" or "NONE" or "N/A" or "DEFAULT STRING" or "SYSTEM PRODUCT NAME" or "SYSTEM MANUFACTURER" or "SYSTEM MODEL" or "TO BE FILLED BY O.E.M" or "NOT APPLICABLE";
     public static string NormalizeVendor(string? value)=>Clean(value).TrimEnd('.').ToUpperInvariant() switch
     {
         "ASUS" or "ASUSTEK COMPUTER INC" or "ASUSTEK COMPUTER INCORPORATED"=>"ASUS",

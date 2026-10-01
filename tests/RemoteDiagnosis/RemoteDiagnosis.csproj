@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Platform-neutral on purpose: runs in the secret-free contract job on Linux and on a developer Mac. -->
+  <PropertyGroup><OutputType>Exe</OutputType><TargetFramework>net10.0</TargetFramework><ImplicitUsings>enable</ImplicitUsings><Nullable>enable</Nullable><RootNamespace>DriverPilot.Tests</RootNamespace></PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../../src/DriverPilot/Infrastructure/Core.cs" Link="Core.cs" />
+    <Compile Include="../../src/DriverPilot/Hardware/HardwareProfile.cs" Link="HardwareProfile.cs" />
+    <Compile Include="../../src/DriverPilot/Hardware/ManufacturerScanner.cs" Link="ManufacturerScanner.cs" />
+    <Compile Include="../../src/DriverPilot/RemoteDiagnosis/*.cs" Link="RemoteDiagnosis/%(Filename)%(Extension)" />
+    <EmbeddedResource Include="../../contracts/remote-diagnosis/v1/rules.json" LogicalName="DriverPilot.Contracts.rules.json" />
+    <EmbeddedResource Include="../../contracts/remote-diagnosis/v1/errors.json" LogicalName="DriverPilot.Contracts.errors.json" />
+    <EmbeddedResource Include="../../src/DriverPilot/Scripts/ManufacturerInventory.ps1" LogicalName="DriverPilot.Scripts.ManufacturerInventory.ps1" />
+    <PackageReference Include="JsonSchema.Net" Version="9.4.0" />
+  </ItemGroup>
+</Project>

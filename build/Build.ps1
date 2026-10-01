@@ -14,7 +14,7 @@ if($LASTEXITCODE -ne 0){throw 'Build fehlgeschlagen.'}
 if(@(Get-ChildItem -LiteralPath $out -Directory).Count){throw 'Package must be flat; unexpected publish directories.'}
 if($Sign){
  . (Join-Path $PSScriptRoot 'Signing.ps1')
- foreach($name in @('DriverPilot.exe','DriverPilot.dll','Setup.ps1')){Sign-DriverPilotArtifact (Join-Path $out $name)}
+ foreach($name in @('DriverPilot.exe','DriverPilot.dll','Setup.ps1','Uninstall.ps1')){Sign-DriverPilotArtifact (Join-Path $out $name)}
 }
 $files=[ordered]@{}
 Get-ChildItem -LiteralPath $out -File | Sort-Object Name | ForEach-Object {$files[$_.Name]=(Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash}

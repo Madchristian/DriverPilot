@@ -1,0 +1,107 @@
+name: Manual signed branch uninstall validation
+run-name: Uninstall validation ${{ inputs.reviewed_sha }} by @${{ github.actor }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      reviewed_sha:
+        description: 'Reviewed full lowercase 40-character commit SHA; must equal selected branch HEAD'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: uninstall-validation-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    if: github.event_name == 'workflow_dispatch' && github.repository == 'Madchristian/DriverPilot' && startsWith(github.ref, 'refs/heads/') && github.ref != 'refs/heads/main'
+    environment: uninstall-validation
+    runs-on: windows-2022
+    timeout-minutes: 45
+    defaults:
+      run:
+        shell: powershell
+    env:
+      REVIEWED_SHA: ${{ inputs.reviewed_sha }}
+      DRIVERPILOT_REVIEWED_SHA: ${{ inputs.reviewed_sha }}
+      DRIVERPILOT_SIGN_UNINSTALL_TEST: 'true'
+      DRIVERPILOT_SIGN_RELEASE: 'false'
+    steps:
+      - name: Validate immutable dispatch identity before checkout
+        run: |
+          if($env:REVIEWED_SHA -cnotmatch '^[0-9a-f]{40}$' -or $env:REVIEWED_SHA -cne $env:GITHUB_SHA){throw 'Reviewed SHA must exactly match the selected branch dispatch commit.'}
+          if($env:GITHUB_WORKFLOW_REF -cne "$env:GITHUB_REPOSITORY/.github/workflows/uninstall-validation.yml@$env:GITHUB_REF"){throw 'Unexpected workflow identity.'}
+          if($env:GITHUB_ACTIONS -ne 'true' -or $env:RUNNER_ENVIRONMENT -ne 'github-hosted' -or $env:RUNNER_OS -ne 'Windows'){throw 'Disposable hosted Windows runner required.'}
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          repository: Madchristian/DriverPilot
+          ref: ${{ inputs.reviewed_sha }}
+          persist-credentials: false
+      - name: Verify checked-out commit and record public provenance
+        run: |
+          $actual=(git rev-parse HEAD).Trim()
+          if($LASTEXITCODE -ne 0 -or $actual -cne $env:REVIEWED_SHA){throw 'Checkout does not match reviewed commit.'}
+          New-Item -ItemType Directory -Path artifacts/uninstall-validation -Force | Out-Null
+          [ordered]@{repository=$env:GITHUB_REPOSITORY;ref=$env:GITHUB_REF;sha=$actual;workflow=$env:GITHUB_WORKFLOW_REF;runId=$env:GITHUB_RUN_ID;attempt=$env:GITHUB_RUN_ATTEMPT;actor=$env:GITHUB_ACTOR} | ConvertTo-Json | Set-Content artifacts/uninstall-validation/provenance.json -Encoding UTF8
+      - uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4
+        with:
+          dotnet-version: '10.0.x'
+      - name: Safe workflow and isolated Inno callback contracts
+        run: |
+          powershell -NoProfile -ExecutionPolicy Bypass -File ./tests/Test-UninstallWorkflowContract.ps1
+          if($LASTEXITCODE -ne 0){throw 'Workflow contract failed.'}
+          powershell -NoProfile -ExecutionPolicy Bypass -File ./tests/Test-InnoFailureFlow.ps1
+          if($LASTEXITCODE -ne 0){throw 'Inno callback contract failed.'}
+          powershell -NoProfile -ExecutionPolicy Bypass -File ./tests/Test-InnoUninstallLogging.ps1
+          if($LASTEXITCODE -ne 0){throw 'Uninstall logging regression failed.'}
+          powershell -NoProfile -ExecutionPolicy Bypass -File ./tests/Test-CISigningAuthorization.ps1
+          if($LASTEXITCODE -ne 0){throw 'CI signing authorization regression failed.'}
+          powershell -NoProfile -ExecutionPolicy Bypass -File ./tests/helpers/Test-UninstallLifecycleHelpers.ps1
+          if($LASTEXITCODE -ne 0){throw 'Lifecycle helper regression failed.'}
+      - name: Check public signing certificate expiry
+        run: ./build/Test-CertificateExpiry.ps1
+      - name: Import approved signing key using existing CI policy
+        env:
+          DRIVERPILOT_SIGNING_PFX: ${{ secrets.DRIVERPILOT_SIGNING_PFX }}
+          DRIVERPILOT_SIGNING_PASSWORD: ${{ secrets.DRIVERPILOT_SIGNING_PASSWORD }}
+        run: ./build/Initialize-CISigning.ps1
+      - name: Build signed application
+        run: ./build/Build.ps1 -Sign
+      - name: Application pipeline in a fresh Windows PowerShell process
+        run: |
+          powershell -NoProfile -ExecutionPolicy Bypass -File ./tests/Test-Pipeline.ps1
+          if($LASTEXITCODE -ne 0){throw 'Application pipeline failed.'}
+      - name: Package signed installer using existing build helper
+        run: ./build/Build-Release.ps1 -Sign
+      - name: Signature and tampering checks in a fresh Windows PowerShell process
+        run: |
+          powershell -NoProfile -ExecutionPolicy Bypass -File ./tests/Test-Signing.ps1
+          if($LASTEXITCODE -ne 0){throw 'Signing verification failed.'}
+      - name: Destructive uninstall lifecycle on the disposable runner only
+        run: |
+          [xml]$project=Get-Content -LiteralPath src/DriverPilot/DriverPilot.csproj
+          $version=[string]$project.Project.PropertyGroup.Version
+          $installer=Join-Path $PWD "artifacts/dist/DriverPilot-$version-Setup-x64.exe"
+          powershell -NoProfile -ExecutionPolicy Bypass -File ./tests/Test-UninstallLifecycle.ps1 -InstallerPath $installer
+          if($LASTEXITCODE -ne 0){throw 'Uninstall lifecycle failed; inspect uploaded evidence.'}
+      - name: Remove signing key and temporary trust
+        if: always()
+        run: ./build/Remove-CISigning.ps1
+      - name: Upload validation diagnostics
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: uninstall-validation-${{ github.sha }}-${{ github.run_attempt }}
+          path: |
+            artifacts/uninstall-validation/provenance.json
+            artifacts/uninstall-tests/**
+            artifacts/release-*/*results.txt
+            artifacts/release-*/*failure.txt
+            artifacts/dist/installer-test.log
+            artifacts/dist/SHA256SUMS.txt
+          if-no-files-found: warn
+          retention-days: 14

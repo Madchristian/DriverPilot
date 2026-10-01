@@ -11,7 +11,7 @@ $release=Join-Path $root "artifacts/release-$version"
 if($env:GITHUB_REF_TYPE -eq 'tag' -and -not $Sign){throw 'Release-Tags muessen signiert werden.'}
 if($Sign){
  . (Join-Path $PSScriptRoot 'Signing.ps1')
- foreach($name in @('DriverPilot.exe','DriverPilot.dll','Setup.ps1')){Assert-DriverPilotSignature (Join-Path $release $name)}
+ foreach($name in @('DriverPilot.exe','DriverPilot.dll','Setup.ps1','Uninstall.ps1')){Assert-DriverPilotSignature (Join-Path $release $name)}
 }
 $manifest=[DriverPilot.Security.PackageTrust]::Verify($release,(Join-Path $root 'assets/certificates/DriverPilot.cer'),'0.0.0',$false)
 if($manifest.Product -ne 'DriverPilot' -or $manifest.Version -ne $version){throw 'Unpassendes Buildmanifest.'}

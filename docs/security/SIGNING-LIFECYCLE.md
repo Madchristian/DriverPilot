@@ -26,6 +26,11 @@ Solche Schritte führt ausschließlich der autorisierte Maintainer bewusst aus.
 - Ausnahme nur für ausdrücklich autorisierte signierte CI-Läufe:
   `build/Initialize-CISigning.ps1` importiert Schlüssel und temporäres
   Root-Vertrauen auf dem wegwerfbaren GitHub-Runner.
+  Neben Release-Tags und manuellen main-Testbuilds ist ein separater manueller,
+  an den geprüften Commit gebundener Branch-Deinstallationstest vorgesehen:
+  [Freigaben und Voraussetzungen](../validation/UNINSTALL-CI.md).
+  Dessen geschützte GitHub-Environment-Freigabe muss vor Nutzung eingerichtet
+  werden; ein Workflow-Dateiname oder eine Umgebungsvariable ersetzt kein Review.
   `build/Remove-CISigning.ps1` entfernt beides vor dem Upload. Diese Skripte
   nicht durch gefälschte Runner-Umgebungsvariablen lokal ausführen.
 
@@ -117,9 +122,12 @@ Wiederherstellungsprobe nicht.
   und vor jedem Release den letzten Monitorlauf und das UTC-Ablaufdatum prüfen;
   zusätzlich einen unabhängigen Kalendertermin vor dem 90-Tage-Fenster pflegen.
 - Das Manifest hat **keinen vertrauenswürdigen Zeitstempel**. Bei jeder Paketprüfung
-  muss das gepinnte Zertifikat aktuell gültig sein. Auch früher signierte Pakete
+  muss das gepinnte Zertifikat für Installation/Updates aktuell gültig sein. Auch früher signierte Pakete
   werden nach Ablauf abgelehnt; Authenticode-Zeitstempel verlängern diese Frist
   nicht. Uhrzeit nicht zurückstellen, Gültigkeitsprüfung nicht abschalten.
+  Die reine Deinstallation prüft weiterhin Pin, Signatur und Dateihashes, benötigt
+  aber keine aktuelle Zertifikatsgültigkeit: Ein Ablauf darf die Entfernung eines
+  zuvor installierten Programms nicht verhindern.
 
 ## 4. Geplanter Zertifikatswechsel
 
@@ -131,7 +139,8 @@ Anzeigenamen bedeutet ein neues Zertifikat einen neuen Fingerabdruck und Pin.
    neuen Fingerabdruck eindeutig unterscheiden. Offline-Backup und Restore-Probe
    des neuen Schlüssels abschließen, bevor der alte außer Betrieb geht.
 2. In einem überprüften Änderungsstand zusammen aktualisieren:
-   `assets/certificates/DriverPilot.cer`, `PackageTrust.CertificateHash`, öffentliche
+   `assets/certificates/DriverPilot.cer`, `PackageTrust.CertificateHash`, den identischen
+   festen Zertifikat-Pin in `installer/Uninstall.ps1`, öffentliche
    Fingerabdrücke/Ablaufdatum in `ZERTIFIKAT-ANLEITUNG.txt` und `UPDATE-SECURITY.md`
    sowie betroffene Tests/Dokumentation. Kein privates Material einchecken.
    CI-Secrets nur vom autorisierten Maintainer passend ersetzen. Bereits gebaute
@@ -145,6 +154,10 @@ Anzeigenamen bedeutet ein neues Zertifikat einen neuen Fingerabdruck und Pin.
    die Authenticode-Signatur der neuen Setup-EXE vor UAC. Ein heruntergeladenes
    `Setup.ps1` ist kein sicherer Bootstrap. Das gilt auch für alte Versionen bis
    0.3.2 mit ihrem nicht authentifizierten Updatepfad.
+   Vor einem Wechsel des Pins die alte Installation mit ihrem bisherigen Uninstaller
+   entfernen (Daten dabei behalten). Der neue Uninstaller akzeptiert keine unter einem
+   anderen Pin signierten `previous-*`-Programmordner. Eine Übernahme mehrerer Pins
+   ist kein vorhandenes Feature und benötigt eine eigene geprüfte Migration.
 4. **Optionaler Brückenweg nur bei noch gültigem, sicherem alten Schlüssel:** Ein
    vom alten installierten Updater geprüftes und mit dem alten Schlüssel signiertes
    Übergangspaket kann den überprüften neuen Verifier samt neuem Pin/Zertifikat

@@ -1,3 +1,8 @@
+$globalMutex=[Threading.Mutex]::new($false,'Global\DriverPilot.Maintenance')
+$globalHeld=$false
+try{
+ $globalHeld=$globalMutex.WaitOne(0)
+ if(-not $globalHeld){exit 0}
 $root=Join-Path $env:ProgramData 'DriverPilot'
 if(-not(Test-Path -LiteralPath $root)){throw 'Die geschützte Installation fehlt.'}
 $mutex=New-Object Threading.Mutex($false,'Local\DriverPilot.Maintenance')
@@ -117,3 +122,4 @@ public static class PilotIdle {
  if($state){Note ("Wartungsfehler: "+$_.Exception.Message)}
  throw
 } finally {try{$mutex.ReleaseMutex()}catch{};$mutex.Dispose()}
+}finally{if($globalHeld){$globalMutex.ReleaseMutex()};$globalMutex.Dispose()}

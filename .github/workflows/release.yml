@@ -21,6 +21,21 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  contract:
+    name: Remote diagnosis contract
+    # Separate job without secrets: third-party Python packages never share a runner with the signing key.
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Validate OpenAPI, schemas and fixtures
+        run: |
+          python3 -m venv "$RUNNER_TEMP/contract-venv"
+          "$RUNNER_TEMP/contract-venv/bin/pip" install --quiet -r contracts/remote-diagnosis/requirements.txt
+          "$RUNNER_TEMP/contract-venv/bin/python" contracts/remote-diagnosis/validate_contract.py
+
   app-upgrade:
     name: Signed app upgrade and recovery
     runs-on: windows-2022

@@ -13,3 +13,4 @@ dist/
 *.p12
 *.key
 __pycache__/
+.venv/

@@ -11,6 +11,8 @@ if($Installer){
  exit 0
 }
 & (Join-Path $PSScriptRoot 'Test-InstallationContract.ps1')
+& (Join-Path $PSScriptRoot 'Test-SetupProcessGate.ps1')
+& (Join-Path $PSScriptRoot 'Test-SetupProcessGateNative.ps1') -AppPath (Join-Path $release 'DriverPilot.exe')
 & (Join-Path $PSScriptRoot 'Test-LifecycleGate.ps1') -AppPath (Join-Path $release 'DriverPilot.exe')
 & (Join-Path $PSScriptRoot 'Test-Uninstall.ps1')
 $scriptDirectories=@('build','tests','installer','src/DriverPilot/Scripts')

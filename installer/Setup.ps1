@@ -62,6 +62,13 @@ function Get-InstallationOwner($Metadata,[string]$Sid,[string]$ProfilePath){
 function Assert-NoPendingUninstall([string]$SharedRoot){
  if(Test-Path -LiteralPath (Join-Path $SharedRoot 'UninstallPending')){throw 'Eine DriverPilot-Deinstallation ist noch nicht abgeschlossen. Zuerst die Deinstallation erneut ausfuehren; keine neue Version darueber installieren.'}
 }
+function Assert-SetupRuntimeIdle {
+ # A live starting/suspended process may have no readable image path yet.
+ # Match by name across sessions, conservatively including portable instances;
+ # a failed query is unknown, never proof that it is safe to replace the app.
+ $running=@(Get-CimInstance Win32_Process -Filter "Name='DriverPilot.exe'" -ErrorAction Stop)
+ if($running.Count){throw 'DriverPilot laeuft noch. Bitte alle Instanzen beenden.'}
+}
 # An update can ONLY be orchestrated by the protected, already installed updater.
 # Bootstrap is supplied by an independently authenticated installer, never by an update package.
 if($PackagePath){
@@ -122,8 +129,7 @@ try{
  [DriverPilot.Security.PackageTrust]::AssertApproval($ready,$ApprovedManifestHash)
  Assert-ProtectedTree $next
  if($WaitForPid -gt 0){Wait-Process -Id $WaitForPid -Timeout 30 -ErrorAction SilentlyContinue}
- $running=@(Get-Process DriverPilot -ErrorAction SilentlyContinue | Where-Object {$_.Path -eq $exe})
- if($running.Count){throw 'DriverPilot laeuft noch. Bitte beenden.'}
+ Assert-SetupRuntimeIdle
  if(Test-Path -LiteralPath $target){Assert-ProtectedTree $target}
  Publish-PackageDirectory $target $next $previous
 }finally{

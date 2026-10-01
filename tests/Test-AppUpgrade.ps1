@@ -177,8 +177,15 @@ try{
  Record 'bootstrap' 'Signed baseline installed, all inventory bytes verified and app launch passed'
  # Real DriverPilot process, held before normal startup so there are no scans or user writes.
  $heldApp=Start-Process -FilePath (Join-Path $target 'DriverPilot.exe') -ArgumentList "--wait-for $PID" -WorkingDirectory $env:SystemRoot -PassThru
- [UpgradeProcessHold]::Suspend($heldApp)
- try{[void](Update $current 'running-app' 'DriverPilot laeuft noch')}finally{if(-not $heldApp.HasExited){$heldApp.Kill();$heldApp.WaitForExit()};$heldApp.Dispose();$heldApp=$null}
+ try{
+  [UpgradeProcessHold]::Suspend($heldApp)
+  Assert (-not $heldApp.HasExited) 'Running-app fixture exited before update'
+  $observed=@(Get-CimInstance Win32_Process -Filter "Name='DriverPilot.exe'" -ErrorAction Stop | Where-Object {$_.ProcessId -eq $heldApp.Id})
+  Assert ($observed.Count -eq 1) 'Running-app fixture not visible to process query'
+  [ordered]@{Pid=$heldApp.Id;Alive=$true;ImagePathAvailable=([bool](Get-Process -Id $heldApp.Id -ErrorAction Stop).Path)} | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $evidence 'running-app-process.json') -Encoding UTF8
+  [void](Update $current 'running-app' 'DriverPilot laeuft noch')
+  Assert (-not $heldApp.HasExited) 'Update unexpectedly terminated the held application'
+ }finally{if(-not $heldApp.HasExited){$heldApp.Kill();$heldApp.WaitForExit()};$heldApp.Dispose();$heldApp=$null}
  Check-Preserved $baselineVersion 'after-running-app'
  Record 'running-app' 'Update rejected with live installed app; baseline remains verified and launchable'
  $tampered=Join-Path $workspace 'tampered';Copy-Item -LiteralPath $current -Destination $tampered -Recurse

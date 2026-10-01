@@ -1,5 +1,6 @@
 using System.Net.Http;
 using System.Text;
+using System.Text.Json;
 using System.Windows;
 using System.Windows.Controls;
 using DriverPilot.RemoteDiagnosis;
@@ -38,7 +39,10 @@ public static class RemoteDiagnosisTests
         var send = Find<Button>("RemoteSend"); var export = Find<Button>("RemoteExport"); var preview = Find<TextBox>("RemotePreview"); var consent = Find<CheckBox>("RemoteConsent");
         Check(!send.IsEnabled && !export.IsEnabled && consent.IsChecked != true, "nothing can be sent or exported before a description exists");
         Find<TextBox>("RemoteDescription").Text = "Synthetischer Testfall: Bild friert nach 20 Minuten ein.";
-        Check(preview.Text.Contains("\"schema_version\": \"1.0\"") && preview.Text.Contains("Synthetischer Testfall") && !preview.Text.Contains("consent"), "preview shows the real projection of this PC without consent");
+        using var draft = JsonDocument.Parse(preview.Text);
+        Check(draft.RootElement.GetProperty("schema_version").GetString() == "1.0" && preview.Text.Contains("Synthetischer Testfall")
+            && draft.RootElement.GetProperty("consent").ValueKind == JsonValueKind.Null && !session.HasFinalPreview,
+            "draft shows the real projection of this PC with explicit null consent, never approved for sending");
         Check(export.IsEnabled && !send.IsEnabled, "unpaired: preview can be saved locally but not sent");
         consent.IsChecked = true;
         Check(!send.IsEnabled, "consent alone does not enable sending without access and privacy notice");

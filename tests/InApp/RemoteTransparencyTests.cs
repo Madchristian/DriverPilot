@@ -106,6 +106,8 @@ public static class RemoteTransparencyTests
     public static async Task<string> Run(string output)
     {
         Directory.CreateDirectory(output);
+        // Keep the legacy real-scan dialog assertions covered by the isolated harness too.
+        _ = RemoteDiagnosisTests.Run(SystemReportTests.Fixture());
         var server = new Server();
         var now = ScanTime.AddMinutes(2);
         var memory = new Memory();

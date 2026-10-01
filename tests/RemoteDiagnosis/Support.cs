@@ -96,7 +96,8 @@ sealed class MemoryStore : IRemoteStateStore
 {
     public RemoteState State = new();
     public RemoteState Load() => State;
-    public void Save(RemoteState state) => State = state;
+    public Exception? SaveFailure;
+    public void Save(RemoteState state) { if (SaveFailure != null) throw SaveFailure; State = state; }
 }
 
 /// <summary>Reversible stand-in for DPAPI that still proves the token is never stored as typed.</summary>

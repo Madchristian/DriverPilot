@@ -66,7 +66,7 @@ Der Server wartet im Upload nie auf ein Modell. Fehlermeldungen sind feste Texte
 - Ein Idempotency-Key gilt je Clientzugang und Endpunkt. Er wird erst mit einer Annahme (202 bzw. 201) gebunden; abgelehnte Requests binden ihn nicht.
 - Gleicher Key und dieselben Bytes: dieselbe Antwort mit demselben Fall in seinem aktuellen Zustand, ohne neue Analyse. Gleicher Key und andere Bytes: `idempotency_key_conflict`. Parallele Requests sichert ein Datenbank-Constraint ab.
 - Nach dem Löschen eines Falls bleibt ein inhaltsfreier Tombstone bis zum Ablauf des Clientzugangs; sein Key liefert `request_retired` und erzeugt keinen Fall neu.
-- Der Client erzeugt die endgültigen Bytes im Moment der Zustimmung (`consent.accepted_at`) und verwendet danach für jede Wiederholung genau diese Bytes und denselben Key. Die Vorschau zeigt alle Felder außer `consent`. Jede Änderung an Freitext oder Scan verlangt eine neue Zustimmung, neue Bytes und einen neuen Key.
+- Der Client erzeugt die endgültigen Bytes im Moment der Zustimmung (`consent.accepted_at`) und verwendet danach für jede Wiederholung genau diese Bytes und denselben Key. Die endgültige Vorschau zeigt **alle** Felder einschließlich `consent`; sie erscheint nach der lokalen Aktion „Vorschau prüfen / Zustimmung“, aber **vor** dem separaten Senden-Klick. Export und Upload verwenden genau diese UTF-8-Bytes (ohne BOM). Änderungen an Bericht, Scan, KI-Wahl, Empfänger oder geladenem Datenschutzhinweis verwerfen Zustimmung und Bytes. Sie verlangen eine neue Prüfung und einen neuen Key. Dies ist eine Entscheidung über Client-UX und Zeitpunkt der Zustimmung, keine Änderung des Wire-Schemas.
 
 ### Inhalt des Berichts
 

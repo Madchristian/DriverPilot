@@ -14,7 +14,7 @@ Status: **umgesetzt** in `src/DriverPilot/RemoteDiagnosis` und durch `tests/Remo
 ## Antworten
 
 - Der Client liest jede Antwort **strikt**: Ein unbekanntes Feld, ein fehlendes Feld, ein falscher Typ oder ein unbekannter Enum-Wert macht die Antwort ungültig. Der Server darf Antworten deshalb nicht ohne neue Vertragsversion erweitern.
-- Bei Fehlern wertet der Client `error.code` aus und zeigt einen eigenen deutschen Text je Code. `error.message` zeigt er nur bei einem Code ohne eigenen Text, als Plaintext.
+- Bei Fehlern wertet der Client `error.code` aus und zeigt einen eigenen deutschen Text je Code. `error.message` wird nie angezeigt; bei Codes ohne eigenen Text erscheint ein lokaler allgemeiner Hinweis.
 - Eine Fehlerantwort ohne gültiges Fehlerobjekt (zum Beispiel eine HTML-Seite des Proxys) behandelt der Client anhand des Statuscodes: 401 wie `token_invalid`, 404 wie `not_found`, 429 und 5xx als vorübergehend, alles andere als endgültig. Der Server sollte trotzdem immer das Fehlerobjekt liefern, auch aus dem Proxy heraus.
 - `Retry-After` wird als Sekundenzahl gelesen; die HTTP-Datumsform wird nicht unterstützt.
 
@@ -43,12 +43,12 @@ Der Client ruft `GET /capabilities` nach dem Koppeln und bei jedem Öffnen des D
 | `findings[].first_seen` | Liegt ein Ereignis wegen der Scandauer wenige Sekunden vor `observation_start`, wird der Wert auf `observation_start` angehoben. |
 | `collection.*` | `truncated`, wenn ein Limit (64 Geräte, 200 Gruppen, Abfragegrenze von Windows) gegriffen hat; `failed` bei Lesefehler; `unavailable`, wenn das WLAN-Protokoll fehlt oder deaktiviert ist. |
 | `wow` | `null`, wenn der Nutzer keinen Spielkontext angibt. |
-| `consent.accepted_at` | Zeitpunkt des Klicks auf „Zustimmen und senden“. |
+| `consent.accepted_at` | Zeitpunkt der lokalen Aktion „Vorschau prüfen / Zustimmung“ nach aktivierter Zustimmung. Vor dem separaten Senden-Klick vollständig im JSON sichtbar. |
 | `consent.external_ai_allowed` | Nur `true`, wenn `/capabilities` die KI anbietet **und** der Nutzer sie ausdrücklich ankreuzt; die Option ist nicht vorausgewählt. |
 
 - Der Body ist eingerücktes JSON; Umlaute stehen unverändert als UTF-8. Der Server darf keine bestimmte Formatierung oder Feldreihenfolge voraussetzen.
 - Der Client prüft die Textmarker aus `rules.json` selbst und sendet keinen Bericht, der daran scheitern würde.
-- Nach dem Klick sind Bytes und Idempotency-Key eingefroren. Bei Zeitüberschreitung, Verbindungsfehler, 429, 500 oder 503 wiederholt der Client erst nach erneuter Nutzeraktion, mit denselben Bytes und demselben Key. Nach einem App-Neustart oder einer Änderung entsteht ein neuer Bericht mit neuem Key.
+- **Entscheidung zur Transparenz (Schema unverändert):** Die lokale Zustimmungsaktion friert die endgültigen Bytes einschließlich aller vier `consent`-Felder und den Idempotency-Key ein, ohne Netzwerkaufruf. Erst der zweite, ausdrückliche Senden-Klick überträgt diese vorher sichtbaren Bytes. Der Entwurf davor enthält `consent: null` und ist nicht sendbar. Der Dateiexport ist exakt die gerade sichtbare Vorschau als UTF-8 ohne BOM, keine Neu-Serialisierung. Empfänger (vollständiger HTTPS-Endpunkt einschließlich Port), Kategorien/Anzahlen, Hinweisquelle/-version und Aufbewahrung stehen daneben. Bearbeitungen einschließlich KI-Wahl und Rücknahme der Zustimmung verwerfen die Freigabe; geänderte oder ungültige geladene Capabilities und ein Zugangwechsel ebenso. Während einer Übertragung sind Bearbeitungen gesperrt. Nach der lokalen Zustimmungsaktion sind Bytes und Idempotency-Key eingefroren. Bei Zeitüberschreitung, Verbindungsfehler, 429, 500 oder 503 wiederholt der Client erst nach erneuter Nutzeraktion, mit denselben Bytes und demselben Key. Nach einem App-Neustart oder einer Änderung entsteht ein neuer Bericht mit neuem Key.
 
 ## Fall
 
@@ -56,9 +56,21 @@ Der Client ruft `GET /capabilities` nach dem Koppeln und bei jedem Öffnen des D
 - Polling nur bei geöffnetem Dialog, gemäß `poll_after_seconds`, mindestens 10 Sekunden; nach Fehlern 20, 40, 60 Sekunden mit bis zu 20 % Jitter. Der Client sendet `If-None-Match`, sobald er einen ETag hat.
 - Ein Ergebnis zeigt der Client nur, wenn `case_id`, `scan_id` und `report_sha256` zu seinem gesendeten Bericht passen und es das Ergebnisschema samt Längengrenzen erfüllt. Sonst zeigt er eine Fehlermeldung statt des Inhalts.
 - Quellenlinks werden als Text angezeigt und nicht automatisch geöffnet.
-- Rückmeldung: `result_revision` ist die angezeigte Revision; `note` ist `null` oder der eingegebene Text nach Prüfung der Textmarker.
+- Rückmeldung: `result_revision` ist die angezeigte Revision; `note` ist `null` oder der eingegebene Text nach Prüfung der Textmarker. Auch hier lokale vollständige JSON-Vorschau (einschließlich `outcome` und `result_revision`) vor separatem Senden; Text-/Auswahländerungen verwerfen Vorschau und Retry. Ein Revisionswechsel wird vor dem Senden erneut geprüft.
 - Löschen sendet `DELETE` und entfernt bei 204 die lokale Referenz.
 - Liegt lokal ein neuerer Scan vor als der des Falls, markiert der Client das Ergebnis sichtbar als zu einem älteren Scan gehörig.
+
+## Lokaler Speicher und Freigabegrenzen
+
+- Capabilities werden ohne Bearer-Token von der gekoppelten HTTPS-Herkunft geladen. Der Hinweis ist eine Serverangabe, keine unabhängig geprüfte oder separat signierte Datenschutzerklärung. Ein restaurierter Zugang/Fall ersetzt keinen erfolgreich geladenen, validierten Hinweis. Rückmeldung prüfen und senden benötigen beides: gültigen aktuellen Hinweis und freigegebene Fallrevision. Fehlgeschlagene Hinweis-Neuladung sperrt beide Aktionen und verwirft die vorherige Freigabe.
+- Unverändertes erneutes Prüfen einer noch unklaren Rückmeldung behält Bytes und Idempotency-Key. Geänderte Inhalte benötigen eine ausdrückliche neue Prüfung; sie senden niemals stillschweigend die alte Rückmeldung. Nach Bearbeitung/neuer Freigabe kann eine zuvor angenommene Rückmeldung zusätzlich bestehen bleiben.
+- Ein 502/504-Proxyfehler (auch HTML statt JSON) beweist nicht, dass nichts gespeichert wurde. Bei vorübergehenden Schreibfehlern bleiben die geprüften Bytes/Keys für eine ausdrückliche Wiederholung erhalten; es gibt keine automatische neue Schreibanfrage.
+- Neue lokale Zugangs-/Fallzustände werden erst nach erfolgreichem Speichern übernommen. Nach bestätigter Serverannahme mit lokalem Speicherfehler bleiben Berichtsvorschau, Bytes und Key im offenen Dialog erhalten; unveränderte Wiederholung kann denselben angenommenen Fall wiederherstellen. Speicherfehler machen eine Serveraktion nicht rückgängig. Diese Wiederherstellung ist **nur im offenen Dialog** verfügbar, nicht über Prozessabbruch/Neustart hinweg; der Hinweis fordert deshalb zum Offenlassen auf.
+- Dasselbe gilt für Löschen und lokales Entfernen: bei Speicherfehler bleibt der zuletzt gespeicherte Zustand zur Wiederholung erhalten. `token_invalid` deaktiviert den Zugang in der laufenden Sitzung auch dann, wenn seine lokale Entfernung fehlschlägt. Fehlerdetails, Pfade, Token und Diagnosedaten werden nicht in Fehlermeldungen übernommen. Pairing kann serverseitig bereits eine Einladung verbraucht haben, obwohl lokales Speichern scheitert; keine automatische erneute Einlösung.
+
+## Transport und Abbruch
+
+Die JSON-Vorschau umfasst den gesamten Diagnose-Body, nicht geheime Authentifizierungswerte. HTTPS übermittelt notwendigerweise Verbindungsmetadaten einschließlich IP an Server bzw. beteiligte Proxys. Das Bearer-Token steht nur im Authorization-Header, nicht in Vorschau oder Export; angezeigt wird seine Verwendung, niemals sein Wert. Auch Idempotency-Key, User-Agent (App-Version) und übliche HTTP-/TLS-Metadaten werden erklärt. Filter sind keine Garantie für perfekte Redaktion. Verbinden/Einladung, Capabilities und Status-Polling sind klar vom Bericht-Upload getrennt. Abbruch oder Schließen storniert einen laufenden Bericht-Request bestmöglich, kann eine serverseitige Annahme aber nicht rückgängig machen. Es folgt kein automatischer neuer Upload. Nur eine bewusste Wiederholung verwendet die geprüften Bytes mit demselben Key. Nach einem unklaren Ausgang und anschließender Bearbeitung kann eine neue Freigabe einen zweiten Fall erzeugen; der alte läuft serverseitig ab.
 
 ## Nicht im Client
 

@@ -28,6 +28,9 @@ public sealed class RemoteDiagnosisSession
     string? token;
     RemoteReport? draft;
     (byte[] Body, Guid Key, RemoteCaseRef Ref)? pendingUpload;
+    bool uploadAttempted;
+    bool finalPreview;
+    public bool HasFinalPreview => finalPreview && Preview != null;
     (byte[] Body, Guid Key)? pendingFeedback;
     string? etag;
     int failures;
@@ -40,9 +43,24 @@ public sealed class RemoteDiagnosisSession
     public RemoteCaseRef? CaseRef => state.Case;
     public bool Paired => token != null && api != null;
     public string? ServerHost => api?.Origin.Host;
-    public bool CanSend => Paired && Capabilities != null && (draft != null || pendingUpload != null);
+    public string Disclosure
+    {
+        get
+        {
+            var endpoint = api == null ? "Noch kein Empfänger verbunden – kein Upload möglich." : new Uri(api.Origin, "api/v1/cases").AbsoluteUri;
+            var source = api == null ? "Noch nicht geladen" : new Uri(api.Origin, "api/v1/capabilities").AbsoluteUri;
+            return $"Empfänger: Christian über POST {endpoint}\n"
+                + $"Inhalt: Problemtext und Schritte, Windows-/Hardware-/BIOS-Daten, {draft?.Devices.Count ?? 0} Geräte (Modellkennungen, Treiber, Problemcodes), {draft?.Findings.Count ?? 0} Befunde (Ereignisgruppen, keine Rohmeldungen), Erfassungsstatus, optional WoW-Angaben. "
+                + "Dazu: App-/Schema-Version, Scan-ID, Scan- und Beobachtungszeiten, ggf. vorherige Fall-ID und consent (Hinweisversion, Zustimmungszeit in UTC, Upload-Zustimmung, KI-Wahl). Alle JSON-Felder stehen unten.\n"
+                + $"Aufbewahrung laut Server: {(Capabilities == null ? "unbekannt" : Capabilities.CaseRetentionDays + " Tage")}. Hinweisversion: {Capabilities?.PrivacyNotice.Version ?? "unbekannt"}. Quelle des angezeigten Hinweises: {source}. Serverangabe, keine unabhängige Datenschutzprüfung.\n"
+                + "Nicht ausgewählt: rohe Ereignistexte, vollständige Geräteinstanz-IDs, Chat, Einstellungen und gespeicherte Zugangsdaten. Filter sind keine Garantie für vollständige Anonymisierung: eigene Texte und die gesamte Vorschau selbst prüfen.\n"
+                + "HTTPS verschlüsselt den Transport, verbirgt aber nicht die Verbindungs-IP vor Server bzw. beteiligtem Proxy. Zur Anmeldung wird ein geheimes Bearer-Token im Authorization-Header gesendet; sein Wert wird hier und im Export NICHT offengelegt. Hinzu kommen Idempotency-Key, DriverPilot-Version (User-Agent), JSON-Inhaltstyp und übliche HTTP-/TLS-Verbindungsmetadaten. Dies sind keine zusätzlichen Diagnosefelder.\n"
+                + "Verbinden überträgt den Einladungscode; Hinweis-/Statusabfragen senden keinen Diagnosebericht. Statusabfragen eines vorhandenen Falls laufen bei offenem Dialog automatisch. Berichte und Wiederholungen nur nach ausdrücklichem Senden-Klick. Abbrechen kann eine bereits erfolgte Annahme nicht rückgängig machen.";
+        }
+    }
+    public bool CanSend => Paired && Capabilities != null && HasFinalPreview && pendingUpload != null;
     /// <summary>A sent body awaits a retry with identical bytes and key.</summary>
-    public bool HasPendingUpload => pendingUpload != null;
+    public bool HasPendingUpload => pendingUpload != null && uploadAttempted;
 
     public RemoteDiagnosisSession(IRemoteStateStore store, ISecretProtector protector, Func<Uri, RemoteApiClient> connect, Func<DateTimeOffset> clock, ContractRules rules, string appVersion)
     {
@@ -58,21 +76,45 @@ public sealed class RemoteDiagnosisSession
         var origin = ServerAddress.Parse(access.Origin, out _);
         var secret = protector.Unprotect(access.ProtectedToken);
         if (origin == null || secret == null || !ContractFormat.IsTimestamp(access.ExpiresAt) || ContractFormat.ParseTimestamp(access.ExpiresAt) <= clock())
-        { Forget("Der gespeicherte Zugang ist abgelaufen oder nicht mehr lesbar. Bitte Christian um eine neue Einladung bitten."); return; }
+        {
+            try { Forget("Der gespeicherte Zugang ist abgelaufen oder nicht mehr lesbar. Bitte Christian um eine neue Einladung bitten."); }
+            catch (LocalPersistenceException) { PersistenceFailure(); }
+            return;
+        }
         api = connect(origin); token = secret;
     }
 
-    void Save(RemoteState next) { state = next; store.Save(next); }
+    sealed class LocalPersistenceException : Exception { }
+    void Save(RemoteState next)
+    {
+        try { store.Save(next); }
+        catch { throw new LocalPersistenceException(); }
+        state = next;
+    }
+
+    public void ReportUnexpectedFailure()
+    {
+        lastFailureTransient = true;
+        Status = "Vorgang nicht abgeschlossen. Eine Serveraktion kann bereits erfolgt sein. Geprüfte Anfragen bleiben für eine ausdrückliche Wiederholung erhalten. Keine technischen Fehlerdetails werden angezeigt.";
+    }
+
+    void PersistenceFailure()
+    {
+        lastFailureTransient = true;
+        Status = "Lokales Speichern fehlgeschlagen. Eine Serveraktion kann bereits erfolgt sein; eine Annahme wird dadurch nicht rückgängig gemacht. Dialog offen lassen und unverändert erneut versuchen, sobald lokal gespeichert werden kann.";
+    }
 
     void Forget(string status)
     {
-        api = null; token = null; Capabilities = null; Case = null; etag = null; pendingUpload = null; pendingFeedback = null;
         Save(new RemoteState());
+        Invalidate();
+        api = null; token = null; Capabilities = null; Case = null; etag = null;
         Status = status;
     }
 
     public async Task<bool> PairAsync(string serverAddress, string invitationCode)
     {
+        Invalidate();
         var origin = ServerAddress.Parse(serverAddress, out var error);
         if (origin == null) { Status = error; return false; }
         var code = (invitationCode ?? "").Trim();
@@ -81,27 +123,32 @@ public sealed class RemoteDiagnosisSession
         return await Run(async () =>
         {
             var pairing = await candidate.RedeemAsync(code);
-            api = candidate; token = pairing.AccessToken; Capabilities = null; Case = null; etag = null;
             Save(new RemoteState(new RemoteAccess(origin.AbsoluteUri, pairing.ClientId, protector.Protect(pairing.AccessToken), pairing.ExpiresAt)));
+            api = candidate; token = pairing.AccessToken; Capabilities = null; Case = null; etag = null;
             Status = $"Verbunden mit {origin.Host}. Der Zugang gilt bis {Local(pairing.ExpiresAt)}.";
         });
     }
 
     /// <summary>Removes the local access only; cases already on the server expire on their own unless deleted first.</summary>
-    public void Unpair() => Forget("Zugang auf diesem PC entfernt.");
+    public void Unpair()
+    {
+        try { Forget("Zugang auf diesem PC entfernt."); }
+        catch (LocalPersistenceException) { PersistenceFailure(); }
+        catch { ReportUnexpectedFailure(); }
+    }
 
     public async Task<bool> LoadCapabilitiesAsync()
     {
         Capabilities? loaded = null;
-        if (!await Run(async () => loaded = await Api().GetCapabilitiesAsync())) return false;
+        if (!await Run(async () => loaded = await Api().GetCapabilitiesAsync())) { Invalidate(); Capabilities = null; return false; }
         if (!loaded!.ReportSchemaVersions.Contains(ContractRules.ReportSchemaVersion))
         {
-            Capabilities = null; draft = null; Preview = null; pendingUpload = null;
+            Capabilities = null; Invalidate();
             Status = "Der Server erwartet ein anderes Berichtsformat. Bitte DriverPilot aktualisieren.";
             return false;
         }
         // A changed notice invalidates what the user has seen so far.
-        if (Capabilities != null && Capabilities.PrivacyNotice.Version != loaded.PrivacyNotice.Version) { draft = null; Preview = null; pendingUpload = null; }
+        if (Capabilities != null && JsonSerializer.Serialize(Capabilities) != JsonSerializer.Serialize(loaded)) Invalidate();
         Capabilities = loaded;
         return true;
     }
@@ -109,7 +156,7 @@ public sealed class RemoteDiagnosisSession
     /// <summary>Builds the preview from a fresh scan. Any change discards an earlier consent and its frozen bytes.</summary>
     public bool Prepare(Snapshot snapshot, Guid scanId, DateTimeOffset scannedAt, SymptomInput input)
     {
-        draft = null; Preview = null; pendingUpload = null;
+        Invalidate();
         if (!Fresh(scannedAt)) { Status = "Der Scan ist zu alt. Bitte den Dialog schließen und 'Jetzt prüfen' ausführen."; return false; }
         try
         {
@@ -127,37 +174,53 @@ public sealed class RemoteDiagnosisSession
         return age >= TimeSpan.Zero && age <= TimeSpan.FromSeconds(Math.Min(rules.MaxScanAgeSeconds, Capabilities?.MaxScanAgeSeconds ?? rules.MaxScanAgeSeconds));
     }
 
-    /// <summary>
-    /// The user's explicit consent click. The first call freezes body and idempotency key;
-    /// after a transient failure the next call resends exactly those bytes.
-    /// </summary>
-    public async Task<bool> ApproveAndSendAsync(bool externalAiAllowed)
+    /// <summary>Consent is prepared locally. No network; the full immutable body must be reviewed before SendReviewedAsync.</summary>
+    public bool Review(bool externalAiAllowed)
     {
         if (!Paired) { Status = "Bitte zuerst mit einer Einladung verbinden."; return false; }
-        if (pendingUpload == null)
+        if (pendingUpload != null)
+        {
+            if (draft?.Consent?.ExternalAiAllowed == (externalAiAllowed && Capabilities?.ExternalAiOffered == true)) return true;
+            Invalidate(); Status = "KI-Wahl geändert. Bericht und Zustimmung bitte neu vorbereiten."; return false;
+        }
         {
             if (draft == null || Capabilities == null) { Status = "Keine gültige Vorschau. Bitte Angaben prüfen."; return false; }
             if (!Fresh(ContractFormat.ParseTimestamp(draft.ScannedAt))) { draft = null; Preview = null; Status = "Der Scan ist inzwischen zu alt. Bitte erneut prüfen und die Vorschau neu ansehen."; return false; }
             var consent = new ReportConsent(Capabilities.PrivacyNotice.Version, ContractFormat.Timestamp(clock()), true, externalAiAllowed && Capabilities.ExternalAiOffered);
+            draft = draft with { Consent = consent };
             var body = RemoteReportBuilder.Freeze(draft, consent);
             if (body.Length > Math.Min(rules.MaxUploadBytes, Capabilities.MaxUploadBytes)) { Status = "Der Bericht ist zu groß und wurde nicht gesendet."; return false; }
             var sha = Convert.ToHexStringLower(SHA256.HashData(body));
             pendingUpload = (body, Guid.NewGuid(), new RemoteCaseRef("", draft.ScanId, sha, draft.ScannedAt, ""));
-            draft = null;
+            Preview = Encoding.UTF8.GetString(body); finalPreview = true;
+            uploadAttempted = false;
+            Status = "Zustimmung vorbereitet, noch nichts gesendet. Endgültiges JSON einschließlich consent prüfen; erst danach ausdrücklich senden.";
+            return true;
         }
-        var upload = pendingUpload.Value;
+    }
+
+    /// <summary>Only sends the already displayed bytes. Retries preserve body and key, including the reviewed AI choice.</summary>
+    public async Task<bool> SendReviewedAsync(CancellationToken cancel = default)
+    {
+        if (!CanSend) { Status = "Keine endgültige Vorschau. Erst Vorschau prüfen / Zustimmung wählen."; return false; }
+        if (!uploadAttempted && !Fresh(ContractFormat.ParseTimestamp(pendingUpload!.Value.Ref.ScannedAt)))
+        { Invalidate(); Status = "Der Scan ist inzwischen zu alt. Bitte erneut prüfen und die Vorschau neu ansehen."; return false; }
+        var upload = pendingUpload!.Value;
+        uploadAttempted = true;
         var sent = await Run(async () =>
         {
-            var accepted = await Api().CreateCaseAsync(token!, upload.Key, upload.Body);
+            var accepted = await Api().CreateCaseAsync(token!, upload.Key, upload.Body, cancel);
             if (accepted.ReportSha256 != upload.Ref.ReportSha256) throw new RemoteApiException(RemoteApiException.InvalidResponse, 0);
-            pendingUpload = null; pendingFeedback = null; etag = null; Case = null;
             Save(state with { Case = upload.Ref with { CaseId = accepted.CaseId, ExpiresAt = accepted.ExpiresAt } });
+            pendingUpload = null; pendingFeedback = null; etag = null; Case = null;
             Status = $"Bericht angenommen. Christian prüft ihn; das Ergebnis erscheint hier. Der Fall wird am {Local(accepted.ExpiresAt)} gelöscht.";
         });
         // Only a transient failure keeps the frozen request; anything else needs a new preview and consent.
         if (!sent && !lastFailureTransient) { pendingUpload = null; Preview = null; }
         return sent;
     }
+
+    public void Invalidate() { draft = null; Preview = null; pendingUpload = null; pendingFeedback = null; uploadAttempted = false; finalPreview = false; }
 
     public Task<bool> RefreshAsync()
     {
@@ -175,15 +238,35 @@ public sealed class RemoteDiagnosisSession
         }, caseRequest: true);
     }
 
+    public bool CanReviewFeedback => Paired && Capabilities != null && state.Case != null && Case?.Result != null;
+    public string? FeedbackPreview => pendingFeedback is { } value ? Encoding.UTF8.GetString(value.Body) : null;
+    public string? FeedbackEndpoint => api != null && state.Case != null ? new Uri(api.Origin, "api/v1/cases/" + state.Case.CaseId + "/feedback").AbsoluteUri : null;
+    public void InvalidateFeedback() => pendingFeedback = null;
+    public bool ReviewFeedback(string outcome, string? note)
+    {
+        if (!CanReviewFeedback) { Status = "Rückmeldung benötigt einen geladenen Datenschutzhinweis und eine freigegebene Fallrevision."; return false; }
+        if (outcome is not ("improved" or "unchanged" or "worse" or "not_tried")) { Status = "Bitte eine gültige Rückmeldung wählen."; return false; }
+        try
+        {
+            var body = JsonSerializer.SerializeToUtf8Bytes(new FeedbackRequest(outcome, RemoteReportBuilder.FreeText(note, "Notiz", rules), Case!.Result!.Revision), RemoteReportBuilder.Json);
+            if (pendingFeedback == null || !pendingFeedback.Value.Body.AsSpan().SequenceEqual(body))
+                pendingFeedback = (body, Guid.NewGuid());
+            Status = "Rückmeldung vollständig prüfen (einschließlich Ergebnisrevision), dann separat senden. Noch kein Upload.";
+            return true;
+        }
+        catch (ReportInputException ex) { Status = ex.Message; return false; }
+    }
+
     public async Task<bool> SendFeedbackAsync(string outcome, string? note)
     {
         var reference = state.Case;
-        if (reference == null || Case?.Result == null) { Status = "Eine Rückmeldung ist erst nach einem freigegebenen Ergebnis möglich."; return false; }
+        if (!CanReviewFeedback || reference == null) { Status = "Eine Rückmeldung ist erst nach einem freigegebenen Ergebnis möglich."; return false; }
         byte[] body;
-        try { body = JsonSerializer.SerializeToUtf8Bytes(new FeedbackRequest(outcome, RemoteReportBuilder.FreeText(note, "Notiz", rules), Case.Result.Revision), RemoteReportBuilder.Json); }
+        try { body = JsonSerializer.SerializeToUtf8Bytes(new FeedbackRequest(outcome, RemoteReportBuilder.FreeText(note, "Notiz", rules), Case!.Result!.Revision), RemoteReportBuilder.Json); }
         catch (ReportInputException ex) { Status = ex.Message; return false; }
-        // Same content after a failure reuses the key; changed content is a new request.
-        if (pendingFeedback == null || !pendingFeedback.Value.Body.AsSpan().SequenceEqual(body)) pendingFeedback = (body, Guid.NewGuid());
+        // Changes, including a newly released revision, require a new visible review.
+        if (pendingFeedback == null || !pendingFeedback.Value.Body.AsSpan().SequenceEqual(body))
+        { pendingFeedback = null; Status = "Rückmeldung erst vollständig prüfen und separat senden."; return false; }
         var feedback = pendingFeedback.Value;
         var sent = await Run(async () =>
         {
@@ -208,8 +291,8 @@ public sealed class RemoteDiagnosisSession
 
     void DropCase(string status)
     {
-        Case = null; etag = null; pendingFeedback = null;
         Save(state with { Case = null });
+        Case = null; etag = null; pendingFeedback = null;
         Status = status;
     }
 
@@ -245,17 +328,36 @@ public sealed class RemoteDiagnosisSession
 
     async Task<bool> Run(Func<Task> action, bool caseRequest = false)
     {
+        // Covers action failures AND persistence failures in the API-error cleanup branches.
+        try { return await RunCore(action, caseRequest); }
+        catch (LocalPersistenceException) { PersistenceFailure(); return false; }
+        catch { ReportUnexpectedFailure(); return false; }
+    }
+
+    async Task<bool> RunCore(Func<Task> action, bool caseRequest)
+    {
         try
         {
             await action();
             failures = 0; retryAfter = null; lastFailureTransient = false;
             return true;
         }
+        catch (OperationCanceledException)
+        {
+            lastFailureTransient = true;
+            Status = "Abgebrochen. Der Server könnte den Bericht bereits angenommen haben. Kein automatischer neuer Upload; bei Wiederholung bleiben die geprüften Bytes unverändert.";
+            return false;
+        }
         catch (RemoteApiException ex)
         {
             lastFailureTransient = ex.Transient;
             failures++; retryAfter = ex.RetryAfterSeconds;
-            if (ex.Code == "token_invalid") Forget(RemoteText.Error(ex));
+            if (ex.Code == "token_invalid")
+            {
+                // Revocation is authoritative even if removing the stale disk credential fails.
+                Invalidate(); token = null; api = null; Capabilities = null; Case = null; etag = null;
+                Forget(RemoteText.Error(ex));
+            }
             else if (caseRequest && ex.Code == "not_found") DropCase("Der Fall ist auf dem Server nicht mehr vorhanden (gelöscht oder abgelaufen).");
             else Status = RemoteText.Error(ex);
             return false;
@@ -274,7 +376,7 @@ public sealed class RemoteDiagnosisSession
     static string Local(string timestamp) => ContractFormat.ParseTimestamp(timestamp).ToLocalTime().ToString("dd.MM.yyyy HH:mm");
 }
 
-/// <summary>German texts for the user. Server texts are shown only for codes without an own text, as plain text.</summary>
+/// <summary>German error texts are local; arbitrary server errors are never echoed. Results remain inert plain text.</summary>
 public static class RemoteText
 {
     public static string Error(RemoteApiException ex) => ex.Code switch
@@ -297,8 +399,8 @@ public static class RemoteText
         "rate_limited" => Wait("Zu viele Anfragen.", ex),
         "daily_case_limit_reached" => Wait("Für heute sind keine weiteren Fälle möglich.", ex),
         "capacity_exhausted" => Wait("Der Server nimmt gerade keine neuen Fälle an.", ex),
-        "service_unavailable" or "internal_error" => Wait("Der Server ist gerade nicht bereit. Es wurde nichts gespeichert.", ex),
-        _ => ex.ServerMessage is { Length: > 0 } message ? message : "Der Bericht wurde vom Server abgelehnt. Bitte DriverPilot aktualisieren oder Christian informieren."
+        "service_unavailable" or "internal_error" => Wait("Der Server ist gerade nicht bereit. Eine gesendete Anfrage wurde möglicherweise bereits angenommen. Wiederholen nur ausdrücklich mit unveränderten geprüften Daten.", ex),
+        _ => "Der Bericht wurde vom Server abgelehnt. Bitte DriverPilot aktualisieren oder Christian informieren."
     };
 
     static string Wait(string text, RemoteApiException ex)

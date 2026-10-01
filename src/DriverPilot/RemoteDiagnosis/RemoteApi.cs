@@ -218,7 +218,7 @@ public sealed class RemoteApiClient
         try { return await http.SendAsync(request, HttpCompletionOption.ResponseContentRead, cancel); }
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or System.IO.IOException)
         {
-            if (cancel.IsCancellationRequested) throw;
+            if (cancel.IsCancellationRequested) throw new OperationCanceledException(cancel);
             throw new RemoteApiException(RemoteApiException.Network, 0);
         }
     }

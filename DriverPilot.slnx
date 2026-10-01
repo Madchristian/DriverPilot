@@ -3,9 +3,11 @@
     <Project Path="src/DriverPilot/DriverPilot.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/Branding/Branding.Tests.csproj" />
     <Project Path="tests/HardwareRouting/HardwareRouting.csproj" />
     <Project Path="tests/PackageSecurity/PackageSecurity.csproj" />
     <Project Path="tests/RemoteDiagnosis/RemoteDiagnosis.csproj" />
+    <Project Path="tests/RemoteTransparency/RemoteTransparency.csproj" />
     <Project Path="tests/SystemReport/SystemReport.csproj" />
   </Folder>
   <Folder Name="/tests/AppIcon/">

@@ -39,8 +39,8 @@ static class ReportTests
         Check(report.Collection == new ReportCollection("complete", "complete", "complete", "unavailable"), "collection status carried over");
         Check(report.Wow == new ReportWow("11.2.5.63506", "wow_only", "no") && report.Symptom.ReproductionSteps == "1. WoW starten\n2. Schlachtzug betreten" && report.Symptom.OccurredAt == null, "symptom and game context");
 
-        var preview = RemoteReportBuilder.Preview(report);
-        Check(!preview.Contains("consent") && preview.Contains("\"scan_id\"") && text.StartsWith(preview[..^2], StringComparison.Ordinal), "preview is the body without consent");
+        var preview = RemoteReportBuilder.Preview(report with { Consent = Consent });
+        Check(preview == text, "preview includes all consent fields and is byte-identical to the final request");
         Check(Build(previous: "5f0c2a7e-3b1d-4c8a-9e21-7a4d0b6c1f02").PreviousCaseId != null && Build(previous: "not-a-uuid").PreviousCaseId == null, "previous case only as UUID");
 
         Limits();

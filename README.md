@@ -1,4 +1,6 @@
-# DriverPilot 0.3.4
+# DriverPilot 0.3.5 — persönlicher Testkandidat
+
+**Nicht veröffentlicht und nicht für den Produktivbetrieb freigegeben.** Dieser Quellstand bereitet 0.3.5 für Christians persönlichen Test vor. Der lokale Build ist unsigniert, nicht installierbar und nicht als App-Update verwendbar. Die Start-/Installationsanleitung unten gilt für unabhängig geprüfte signierte Releases, nicht für diesen Entwicklungskandidaten. Umfang und offene Freigaben: [Testkandidat 0.3.5](docs/releases/RELEASE-0.3.5.md).
 
 Die veröffentlichte Version [0.3.4](https://github.com/Madchristian/DriverPilot/releases/tag/v0.3.4) ergänzt herstellerunabhängige Hardwareprofile, datensparsame Systemberichte und das neue Chip-Icon. Release-Dateien sind seit 0.3.2 signiert, das vollständige App-Updateinventar ist seit 0.3.3 durch ein signiertes Manifest authentifiziert. Migration von veröffentlichten Versionen bis 0.3.2 nur über den unabhängig geprüften signierten Installer. Nachweise und Testgrenzen: [aktueller Validierungsbericht](https://github.com/Madchristian/DriverPilot/blob/main/docs/validation/VALIDATION-SIGNED.md), [Release-Notizen](https://github.com/Madchristian/DriverPilot/blob/main/docs/releases/RELEASE-0.3.4.md) und [Update-Sicherheit](https://github.com/Madchristian/DriverPilot/blob/main/docs/security/UPDATE-SECURITY.md). Spätere CI-/Betriebsänderungen auf main sind nicht automatisch Bestandteil des veröffentlichten Tags.
 
@@ -67,9 +69,10 @@ Neue belegte Treiberversionen können eine Benachrichtigung auslösen. Ein offen
 Auf `main` nach 0.3.4 ergänzt und noch **nicht veröffentlicht**: Über **Hilfe von Christian** lässt sich nach einem frischen Scan ein strukturierter Diagnosebericht an einen von Christian betriebenen Server senden. Der zugehörige Server ist ein getrenntes Vorhaben; ohne ihn bleibt nur der lokale Export. Vertrag und Clientverhalten: [contracts/remote-diagnosis/v1](https://github.com/Madchristian/DriverPilot/tree/main/contracts/remote-diagnosis/v1).
 
 - Zugang nur mit Serveradresse und Einmaleinladung von Christian. Das Zugangstoken liegt mit Windows-DPAPI geschützt im Benutzerprofil; es gibt keine eingebaute Adresse und kein eingebautes Geheimnis.
-- Kein Upload beim Start oder beim Scan. Gesendet wird erst nach vollständiger Vorschau, gelesenem Datenschutzhinweis, Zustimmung und Klick. Jede Änderung am Text verwirft die Zustimmung. Externe KI ist eine gesonderte, nicht vorausgewählte Option.
+- Kein Bericht-Upload beim Start, beim Scan oder beim Erstellen der Vorschau. **Zwei getrennte Schritte:** Entwurf/Hinweis prüfen und „Vorschau prüfen / Zustimmung“ wählen; danach das **vollständige endgültige JSON inklusive `consent`, UTC-Zustimmungszeit und KI-Wahl** prüfen und ausdrücklich „Genau dieses JSON jetzt senden“. Datei und Upload enthalten identische UTF-8-Bytes. Wiederholungen verwenden dieselben Bytes und denselben Idempotency-Key; keine versteckten Diagnosefelder werden ergänzt. Änderungen an Angaben, KI-Wahl, Empfänger oder geladenem Hinweis verwerfen die Freigabe. Während eines Uploads sind Bearbeitungen gesperrt. Externe KI ist getrennt und nicht vorausgewählt.
 - Der Bericht enthält ausgewählte Hardwarefelder, höchstens 64 Geräte mit bereinigter PCI-/USB-Modellkennung und höchstens 200 gruppierte Ereignisse (Quelle, Ereignis-ID, Anzahl, Zeitraum) der letzten 24 Stunden sowie den eigenen Freitext. Keine Gerätenamen, Ereignisnachrichten, Instanz-IDs, Seriennummern, Pfade oder Dumps. Erfassungslücken werden als solche gekennzeichnet. Die Textfilter sind Heuristiken und keine Garantie für Anonymität.
-- Ergebnisse erscheinen erst nach Christians Freigabe, als reiner Text, gebunden an den gesendeten Scan. DriverPilot führt keine Empfehlung selbst aus und öffnet keine Links automatisch.
+- Empfänger-Endpunkt (HTTPS, einschließlich Port), Kategorien/Anzahlen, Aufbewahrung und Quelle/Version des Serverhinweises sind sichtbar. HTTPS verbirgt die Verbindungs-IP nicht vor Server/Proxy. Die Verwendung eines geheimen Bearer-Tokens im HTTP-Header sowie sonstige HTTP-/TLS-Metadaten wird erklärt; Tokenwerte erscheinen niemals in Vorschau/Export. Verbinden und Statusabfragen sind keine Bericht-Uploads. Abbrechen beendet den laufenden Versuch bestmöglich, macht eine bereits erfolgte Annahme aber nicht rückgängig; keine automatische Wiederholung.
+- Auch Rückmeldungen erhalten vor dem separaten Senden eine vollständige JSON-Vorschau mit Ergebnisrevision. Ergebnisse erscheinen erst nach Christians Freigabe, als reiner Text, gebunden an den gesendeten Scan. DriverPilot führt keine Empfehlung selbst aus und öffnet keine Links automatisch.
 - Der Fall lässt sich jederzeit auf dem Server löschen und läuft dort nach der im Datenschutzhinweis genannten Frist ab. Die Vorschau lässt sich ohne Server lokal als Datei speichern.
 
 ## Abgeschlossene 0.3-Basis und nachfolgende Absicherung
@@ -150,13 +153,13 @@ Quellen: https://learn.chatgpt.com/docs/app-server und https://learn.microsoft.c
 
 ## Repository und Release
 
-GitHub Actions baut und testet Pushes auf `main`, Pull Requests gegen `main`, Versionstags und manuell gestartete Läufe. Beliebige andere Branch-Pushes starten diesen Workflow nicht automatisch. Nach erfolgreichem signiertem Build-Job steht unter **Actions → Windows build and release** das Artefakt `windows-x64-release` 14 Tage zum Download bereit. Es enthält die Setup-EXE, das portable ZIP, `SHA256SUMS.txt`, `DriverPilot.cer` und `ZERTIFIKAT-ANLEITUNG.txt`. Die Veröffentlichung eines Tags setzt zusätzlich den erfolgreichen Upgrade-Job voraus.
+GitHub Actions baut und testet Pushes auf `main`, Pull Requests gegen `main`, Versionstags und manuell gestartete Läufe. Beliebige andere Branch-Pushes starten diesen Workflow nicht automatisch. Nach erfolgreichem signiertem Build-Job steht unter **Actions → Windows build and release** das Artefakt `windows-x64-release` 14 Tage zum Download bereit. Es enthält die Setup-EXE, das portable ZIP, `SHA256SUMS.txt`, `DriverPilot.cer` und `ZERTIFIKAT-ANLEITUNG.txt`. Die Veröffentlichung eines Tags setzt zusätzlich erfolgreiche Upgrade- und Vertragsprüfungs-Jobs voraus.
 
 | Laufart | Produktionssignierung und Ausgabe |
 | --- | --- |
 | PR, main-Push oder manueller Lauf mit `sign=false` | Unsigniertes Entwicklungsprogramm; keine Release-ZIPs/Installer und kein `windows-x64-release`. Sicherheitstests nutzen kurzlebige Testschlüssel. |
 | Manueller Lauf auf `main` mit `sign=true` | Signierter Testbuild einschließlich Signatur-/Manipulations- und Installerprüfung; Download als Actions-Artefakt, **kein GitHub Release**. |
-| Push eines passenden `v*`-Versionstags | Signierte Release-Dateien; Veröffentlichung erst nach erfolgreichen Build- und Upgrade-Jobs. |
+| Push eines passenden `v*`-Versionstags | Signierte Release-Dateien; Veröffentlichung erst nach erfolgreichen Build-, Upgrade- und Vertragsprüfungs-Jobs. |
 
 Signierte Testbuilds bewusst über **Actions → Windows build and release → Run workflow → main → sign** starten. Auf einem anderen Branch wird auch bei `sign=true` kein Produktionsschlüssel verwendet. Testartefakte sind nicht mit einem veröffentlichten Release gleichzusetzen. Der separate Upgrade-Job verwendet immer einen kurzlebigen Testschlüssel; sein `app-upgrade-evidence`-Artefakt ist ebenfalls 14 Tage verfügbar, auch bei Fehlern.
 

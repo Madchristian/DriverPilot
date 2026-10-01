@@ -1,6 +1,5 @@
 using System.Text.Encodings.Web;
 using System.Text.Json;
-using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 namespace DriverPilot.RemoteDiagnosis;
 
@@ -99,13 +98,8 @@ public static class RemoteReportBuilder
             ContractFormat.IsUuid(previousCaseId) ? previousCaseId : null, symptom, Hardware(snapshot, rules), devices, findings, collection, wow, null);
     }
 
-    /// <summary>Exactly what the user approves: every field except consent.</summary>
-    public static string Preview(RemoteReport report)
-    {
-        var node = JsonSerializer.SerializeToNode(report, Json)!.AsObject();
-        node.Remove("consent");
-        return node.ToJsonString(Json);
-    }
+    /// <summary>Every wire member, including consent (null in a non-sendable draft).</summary>
+    public static string Preview(RemoteReport report) => JsonSerializer.Serialize(report, Json);
 
     /// <summary>The request body. These bytes are hashed by the server and must be reused unchanged for every retry.</summary>
     public static byte[] Freeze(RemoteReport report, ReportConsent consent)

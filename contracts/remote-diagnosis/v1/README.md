@@ -16,6 +16,7 @@ Der Vertrag beschreibt ausschließlich die Client-API unter `/api/v1`. Die Admin
 | `fixtures/valid/<schema>/` | Positivbeispiele je Schema. |
 | `fixtures/invalid/<schema>/` | Negativbeispiele; erwarteter Fehler in `fixtures/scenario.json`. |
 | `fixtures/scenario.json` | Gemeinsame Serverzeit und Hinweisversion der Fixtures, Erwartungen der Negativfälle. |
+| `CLIENT.md` | Was der Windows-Client konkret sendet und erwartet; Orientierung für die Serverumsetzung. |
 | `../validate_contract.py` | Prüft alles Obige gegeneinander; läuft in CI. |
 
 ## Transport

@@ -198,7 +198,7 @@ try{
  Record 'pending-installer-refusal' 'Nonzero installer exit; existing uninstaller and registration byte/field checks unchanged'
 
  $ownerPath=Join-Path $data 'app-install.json';$ownerBytes=[IO.File]::ReadAllBytes($ownerPath)
- $wrongOwner=[Text.Encoding]::UTF8.GetString($ownerBytes) | ConvertFrom-Json
+ $wrongOwner=Get-Content -LiteralPath $ownerPath -Raw -Encoding UTF8 | ConvertFrom-Json
  $wrongOwner.OwnerSid='S-1-5-21-1-2-3-9999'
  try{
   $wrongOwner | ConvertTo-Json | Set-Content -LiteralPath $ownerPath -Encoding UTF8

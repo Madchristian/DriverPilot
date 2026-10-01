@@ -104,7 +104,7 @@ try{
  $workspace=Join-Path $env:RUNNER_TEMP ('DriverPilot-upgrade-'+[guid]::NewGuid().ToString('N'))
  New-Item -ItemType Directory -Path $workspace | Out-Null
  # Explicit public-source allowlist, not a recursive checkout copy (.git/secrets excluded).
- foreach($dir in @('src','assets','build','installer','docs')){Copy-Item -LiteralPath (Join-Path $root $dir) -Destination $workspace -Recurse}
+ foreach($dir in @('src','assets','build','installer','docs','contracts')){Copy-Item -LiteralPath (Join-Path $root $dir) -Destination $workspace -Recurse}
  New-Item -ItemType Directory -Path (Join-Path $workspace 'tests') | Out-Null
  Copy-Item -LiteralPath (Join-Path $root 'tests/InApp') -Destination (Join-Path $workspace 'tests') -Recurse
  Copy-Item -LiteralPath (Join-Path $root 'README.md') -Destination $workspace

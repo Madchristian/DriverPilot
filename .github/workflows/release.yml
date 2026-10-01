@@ -133,8 +133,6 @@ jobs:
         run: ./build/Initialize-CISigning.ps1
       - name: Build self-contained Windows application
         run: ./build/Build.ps1 -Sign:($env:DRIVERPILOT_SIGN_RELEASE -eq 'true')
-      - name: Run application and transport tests
-        run: ./tests/Test-Pipeline.ps1
       - name: Verify native application icons
         run: |
           [xml]$project=Get-Content -LiteralPath src/DriverPilot/DriverPilot.csproj
@@ -152,6 +150,11 @@ jobs:
       - name: Test installation on disposable runner
         if: env.DRIVERPILOT_SIGN_RELEASE == 'true'
         run: ./tests/Test-Pipeline.ps1 -Installer
+      # The normal app self-test creates LOCALAPPDATA/DriverPilot. Keep the
+      # lifecycle test's pristine-runner guard intact by running it first.
+      # This still runs for unsigned builds and gates every artifact upload.
+      - name: Run application and transport tests
+        run: ./tests/Test-Pipeline.ps1
       - name: Remove runner signing key and temporary trust
         if: always() && env.DRIVERPILOT_SIGN_RELEASE == 'true'
         run: ./build/Remove-CISigning.ps1

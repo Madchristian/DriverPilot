@@ -87,10 +87,10 @@ public partial class MainWindow : Window
         ManufacturerList.ItemsSource=null;ManufacturerStatus.Text="Für diesen Scan noch keine Herstellerprüfung abgeschlossen.";
         try
         {
-            var data=await PowerShell.Run("Inventory");var next=JsonSerializer.Deserialize<Snapshot>(data,Store.Json)??throw new Exception("Windows hat keine Gerätedaten geliefert.");
+            var data=await PowerShell.Run("Inventory");var next=SnapshotData.Parse(data);
             if(snapshot!=null)
             {
-                var previous=snapshot.Devices.ToDictionary(d=>d.Id,d=>d.Version);
+                var previous=SnapshotData.PreviousVersions(snapshot);
                 foreach(var d in next.Devices)if(previous.TryGetValue(d.Id,out var version)&&version!=d.Version)Store.Log("Treiber geändert",$"{d.Name}: {version} → {d.Version}");
             }
             var existing=Store.Read<List<Observation>>("observations.json")??[];

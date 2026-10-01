@@ -67,7 +67,7 @@ public partial class MainWindow
         var c=MaintenanceControls.Load();controlStatus.Text=DateTime.TryParse(c.PauseUntil,out var until)&&until>DateTime.Now?$"Pausiert bis {until:dd.MM.yyyy HH:mm}.":"Keine Pause aktiv. Gespeicherte Regeln gelten für den Autopiloten.";
         blockRows.Children.Clear();foreach(var id in c.BlockedDevices.ToArray())AddBlock(id,true);foreach(var id in c.BlockedUpdates.ToArray())AddBlock(id,false);
         if(blockRows.Children.Count==0)blockRows.Children.Add(Text("Keine Sperren gesetzt."));
-        void AddBlock(string id,bool device){var row=new StackPanel();var label=device?snapshot?.Devices.FirstOrDefault(d=>d.Id==id)?.Name:null;
+        void AddBlock(string id,bool device){var row=new StackPanel();var label=device?SnapshotData.DeviceName(snapshot,id):null;
             row.Children.Add(Text((device?"Gerät: ":"Paket: ")+(label??id)));row.Children.Add(Action("Sperre aufheben",(_,_)=>{var current=MaintenanceControls.Load();(device?current.BlockedDevices:current.BlockedUpdates).Remove(id);current.Save();Store.Log("Sperre aufgehoben",label??id);RefreshControls();}));blockRows.Children.Add(Card(row));}
     }
     void PinDevice(object sender,RoutedEventArgs e){if(DeviceGrid.SelectedItem is not Device d){StatusLine.Text="Zuerst ein Gerät auswählen.";return;}var c=MaintenanceControls.Load();if(!c.BlockedDevices.Contains(d.Id))c.BlockedDevices.Add(d.Id);c.Save();StatusLine.Text=d.Name+" ist für automatische Treiberwechsel gesperrt.";Store.Log("Gerät festgehalten",d.Name+" · "+d.Version);RefreshControls();}

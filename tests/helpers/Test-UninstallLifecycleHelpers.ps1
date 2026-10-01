@@ -12,6 +12,7 @@ for($i=0;$i -lt 8;$i++){
  if($cases[$i].Settings -ne [bool]($i -band 1) -or $cases[$i].Logs -ne [bool]($i -band 2) -or $cases[$i].Backups -ne [bool]($i -band 4)){throw "Wrong selection for case $i"}
 }
 Write-Output 'PASS eight independent selection/flag combinations'
+& (Join-Path $PSScriptRoot 'Test-LifecycleGuiFixtures.ps1')
 if(-not(Get-Command Select-LifecycleQuitItem -ErrorAction SilentlyContinue)){throw 'FAIL: PID-bound tray Quit selector missing'}
 $valid=[pscustomobject]@{Name='Beenden';ProcessId=123;Enabled=$true;Element='correct'}
 $other=[pscustomobject]@{Name='Beenden';ProcessId=456;Enabled=$true;Element='wrong process'}

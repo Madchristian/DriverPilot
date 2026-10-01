@@ -22,13 +22,57 @@ public class Preferences
     public HashSet<string> SeenEvents {get;set;} = [];
     public HashSet<string> ManufacturerNotified {get;set;} = [];
 }
+// Shared read-only boundary: invalid persisted snapshots are unavailable, never repaired into empty scans.
+// Independent of Store initialization: explicit-path reads never create application state.
+public static class PersistedData
+{
+    public static readonly JsonSerializerOptions Json = new() { PropertyNameCaseInsensitive = true, WriteIndented = true };
+    public static T? Read<T>(string path)
+    {
+        try
+        {
+            var text=File.ReadAllText(path);
+            return typeof(T)==typeof(Snapshot) ? (T)(object)SnapshotData.Parse(text) : JsonSerializer.Deserialize<T>(text,Json);
+        }
+        catch { return default; }
+    }
+}
+public static class SnapshotData
+{
+    // Required constructor fields must actually occur in JSON (notably Code=0 must not be invented).
+    // Optional metadata/defaulted Finding fields remain compatible with older snapshots.
+    static readonly JsonSerializerOptions Json = new(PersistedData.Json) { RespectRequiredConstructorParameters = true };
+    public static Snapshot Parse(string json)
+    {
+        var value=JsonSerializer.Deserialize<Snapshot>(json,Json);
+        if(!IsValid(value))throw new JsonException("Gerätedaten fehlen oder sind unvollständig. Bitte erneut prüfen.");
+        return value!;
+    }
+    public static bool IsValid(Snapshot? value)
+    {
+        if(value is not { Devices: not null, Findings: not null, Warnings: not null,
+            Windows: not null, Cpu: not null, Board: not null, Bios: not null }
+            || !double.IsFinite(value.RamGB) || value.RamGB<0)return false;
+        var ids=new HashSet<string>(StringComparer.Ordinal);
+        foreach(var d in value.Devices)
+            if(d is not { Name: not null, Class: not null, Version: not null, Provider: not null, Date: not null }
+                || string.IsNullOrWhiteSpace(d.Id) || !ids.Add(d.Id))return false;
+        foreach(var f in value.Findings)
+            if(f is not { Title: not null, Detail: not null, Severity: not null, Time: not null, DeviceRef: not null, Source: not null }
+                || string.IsNullOrWhiteSpace(f.Key))return false;
+        return value.Warnings.All(w=>w!=null);
+    }
+    // The same read-only startup/comparison processing is used by the UI and isolated tests.
+    public static string? DeviceName(Snapshot? value,string id) => value?.Devices.FirstOrDefault(d=>d.Id==id)?.Name;
+    public static Dictionary<string,string> PreviousVersions(Snapshot? value) => value?.Devices.ToDictionary(d=>d.Id,d=>d.Version) ?? [];
+}
 public static class Store
 {
     public static readonly string Root = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "DriverPilot");
     public static readonly string Shared = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "DriverPilot");
-    public static readonly JsonSerializerOptions Json = new() { PropertyNameCaseInsensitive = true, WriteIndented = true };
+    public static readonly JsonSerializerOptions Json = PersistedData.Json;
     static Store() { Directory.CreateDirectory(Root); }
-    public static T? Read<T>(string name) { try { return JsonSerializer.Deserialize<T>(File.ReadAllText(Path.Combine(Root,name)),Json); } catch { return default; } }
+    public static T? Read<T>(string name) { try { return PersistedData.Read<T>(Path.Combine(Root,name)); } catch { return default; } }
     public static void Save<T>(string name,T data) { lock(Json) { var path=Path.Combine(Root,name); File.WriteAllText(path+".tmp",JsonSerializer.Serialize(data,Json)); File.Move(path+".tmp",path,true); } }
     public static void Log(string action,string detail)
     {

@@ -94,10 +94,10 @@ public sealed class CodexClient : IDisposable
             switch(tool)
             {
                 case "driverpilot_status":
-                    var raw=await PowerShell.Run("Inventory");var snapshot=JsonSerializer.Deserialize<Snapshot>(raw,Store.Json)!;text=JsonSerializer.Serialize(SafeContext(snapshot));break;
+                    var raw=await PowerShell.Run("Inventory");var snapshot=SnapshotData.Parse(raw);text=JsonSerializer.Serialize(SafeContext(snapshot));break;
                 case "driverpilot_search_updates":text=await PowerShell.Run("Updates",600);break;
                 case "driverpilot_manufacturer_updates":
-                    var hardware=JsonSerializer.Deserialize<Snapshot>(await PowerShell.Run("Inventory"),Store.Json)!;
+                    var hardware=SnapshotData.Parse(await PowerShell.Run("Inventory"));
                     text=JsonSerializer.Serialize(await ManufacturerScanner.Scan(hardware));break;
                 case "driverpilot_maintenance":
                     text=await PowerShell.Script("$t=Get-ScheduledTask -TaskName 'DriverPilot Maintenance' -ErrorAction Stop; if($t.State -eq 'Disabled'){throw 'Automatik ist deaktiviert.'}; Start-ScheduledTask -TaskName 'DriverPilot Maintenance'; 'Wartungsauftrag angestoßen. Ergebnis noch offen. Der Auftrag prüft selbst Wartungsfenster, Leerlauf, Paketalter, Gerätezuordnung und ausstehende Neustarts. Keine Installation ist dadurch bestätigt.'",30);break;

@@ -86,6 +86,16 @@ jobs:
           dotnet-version: '10.0.x'
       - name: Certificate lifecycle rehearsal (ephemeral keys, no trust import)
         run: ./tests/Test-CertificateLifecycle.ps1
+      - name: Verify CI signing authorization without key access
+        run: ./tests/Test-CISigningAuthorization.ps1
+      - name: Verify uninstall workflow and lifecycle helpers without installation
+        run: |
+          powershell -NoProfile -ExecutionPolicy Bypass -File ./tests/Test-UninstallWorkflowContract.ps1
+          if($LASTEXITCODE -ne 0){throw 'Uninstall workflow contract failed.'}
+          powershell -NoProfile -ExecutionPolicy Bypass -File ./tests/Test-UninstallWorkflowLineEndings.ps1
+          if($LASTEXITCODE -ne 0){throw 'Workflow line-ending regression failed.'}
+          powershell -NoProfile -ExecutionPolicy Bypass -File ./tests/helpers/Test-UninstallLifecycleHelpers.ps1
+          if($LASTEXITCODE -ne 0){throw 'Uninstall lifecycle helpers failed.'}
       - name: Check public signing certificate expiry
         run: ./build/Test-CertificateExpiry.ps1
       - name: Adversarial package tests (ephemeral keys, no production bypass)
@@ -97,6 +107,10 @@ jobs:
           if($LASTEXITCODE -ne 0){throw 'Hardware routing tests failed.'}
           dotnet run --project tests/SystemReport/SystemReport.csproj -- --integration
           if($LASTEXITCODE -ne 0){throw 'System report tests failed.'}
+      - name: Isolated Inno callback failure regressions (no app installation)
+        run: ./tests/Test-InnoFailureFlow.ps1
+      - name: Isolated uninstall backend diagnostic regression
+        run: ./tests/Test-InnoUninstallLogging.ps1
       - name: Import private release signing key
         if: env.DRIVERPILOT_SIGN_RELEASE == 'true'
         env:
@@ -141,7 +155,7 @@ jobs:
           if-no-files-found: error
           retention-days: 14
       - name: Upload test diagnostics
-        if: failure()
+        if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: test-diagnostics
@@ -149,6 +163,7 @@ jobs:
             artifacts/release-*/*results.txt
             artifacts/release-*/*failure.txt
             artifacts/dist/installer-test.log
+            artifacts/uninstall-tests/**
           retention-days: 7
 
   release:

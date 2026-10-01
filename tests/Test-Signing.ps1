@@ -7,13 +7,13 @@ $version=[string]$project.Project.PropertyGroup.Version
 $release=Join-Path $root "artifacts/release-$version"
 Add-Type -Path (Join-Path $root 'src/DriverPilot/Security/PackageTrust.cs')
 $package=[DriverPilot.Security.PackageTrust]::Verify($release,(Join-Path $root 'assets/certificates/DriverPilot.cer'),'0.0.0',$false)
-$names=@('DriverPilot.exe','DriverPilot.dll','Setup.ps1')
+$names=@('DriverPilot.exe','DriverPilot.dll','Setup.ps1','Uninstall.ps1')
 foreach($name in $names){Assert-DriverPilotSignature (Join-Path $release $name)}
 $public=Get-DriverPilotCertificate
 if($public.HasPrivateKey){throw 'Oeffentliches Zertifikat enthaelt einen privaten Schluessel.'}
 
 # Corrupt the signed program and script in temporary copies, never the release.
-foreach($name in @('DriverPilot.exe','Setup.ps1')){
+foreach($name in @('DriverPilot.exe','Setup.ps1','Uninstall.ps1')){
  $copy=Join-Path ([IO.Path]::GetTempPath()) ([guid]::NewGuid().ToString('N')+[IO.Path]::GetExtension($name))
  try {
   $bytes=[IO.File]::ReadAllBytes((Join-Path $release $name))

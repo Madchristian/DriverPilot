@@ -7,18 +7,14 @@ $release=Join-Path $root "artifacts/release-$version"
 if($Installer){
  if($env:GITHUB_ACTIONS -ne 'true' -or $env:RUNNER_ENVIRONMENT -ne 'github-hosted'){throw 'Installations-Smoke-Test ausschließlich auf wegwerfbaren GitHub-Runnern erlaubt.'}
  $exe=Join-Path $root "artifacts/dist/DriverPilot-$version-Setup-x64.exe"
- $log=Join-Path $root 'artifacts/dist/installer-test.log'
- $p=Start-Process -FilePath $exe -ArgumentList @('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART',('/LOG="'+$log+'"')) -PassThru -WindowStyle Hidden
- if(-not $p.WaitForExit(180000)){$p.Kill();throw 'Installer-Test hat das Zeitlimit überschritten.'}
- if($p.ExitCode -ne 0){throw "Installer fehlgeschlagen: $($p.ExitCode)"}
- $task=Get-ScheduledTask -TaskName 'DriverPilot Maintenance' -ErrorAction Stop
- Disable-ScheduledTask -TaskName $task.TaskName | Out-Null
- if($task.Actions.Execute -ne (Join-Path $env:ProgramFiles 'DriverPilot\DriverPilot.exe')){throw 'Unerwartete Wartungsaktion.'}
- $manifest=Get-Content -LiteralPath (Join-Path $release 'package-manifest.json') -Raw | ConvertFrom-Json
- foreach($entry in $manifest.Files.PSObject.Properties){if((Get-FileHash -LiteralPath (Join-Path "$env:ProgramFiles\DriverPilot" $entry.Name)).Hash -ne $entry.Value){throw "Installierte Datei falsch: $($entry.Name)"}}
- 'Installer erfolgreich: geschützte Installation, Dateiprüfsummen und Wartungsauftrag geprüft; Auftrag anschließend deaktiviert. Keine Treiber installiert.'
+ & (Join-Path $PSScriptRoot 'Test-UninstallLifecycle.ps1') -InstallerPath $exe
  exit 0
 }
+& (Join-Path $PSScriptRoot 'Test-InstallationContract.ps1')
+& (Join-Path $PSScriptRoot 'Test-SetupProcessGate.ps1')
+& (Join-Path $PSScriptRoot 'Test-SetupProcessGateNative.ps1') -AppPath (Join-Path $release 'DriverPilot.exe')
+& (Join-Path $PSScriptRoot 'Test-LifecycleGate.ps1') -AppPath (Join-Path $release 'DriverPilot.exe')
+& (Join-Path $PSScriptRoot 'Test-Uninstall.ps1')
 $scriptDirectories=@('build','tests','installer','src/DriverPilot/Scripts')
 foreach($script in @($scriptDirectories | ForEach-Object {Get-ChildItem -LiteralPath (Join-Path $root $_) -Filter '*.ps1' -File})){
  $tokens=$null;$errors=$null

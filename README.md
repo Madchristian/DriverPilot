@@ -93,6 +93,10 @@ Das überwachte WLAN kann absichtlich deaktiviert sein; Code 22 wird als Hinweis
 
 ## Daten und Betrieb
 
+### Deinstallation (neuer Quellstand, noch nicht in Release 0.3.4)
+
+Der neue Installer registriert **DriverPilot** unter Windows **Installierte Apps**. Die Entfernung behält Einstellungen, Diagnoseprotokolle und Treibersicherungen standardmäßig; drei getrennte, ausdrückliche Auswahlen erlauben deren Löschung. Laufende GUI oder Wartung blockieren die Entfernung, statt eine Treiberinstallation abzubrechen. Zertifikatsvertrauen und bereits installierte Treiber bleiben unverändert. Anleitung, Altversionsmigration und Testgrenzen: [Deinstallation](https://github.com/Madchristian/DriverPilot/blob/main/docs/UNINSTALL.md); im neuen Programmpaket auch als `UNINSTALL.md` enthalten.
+
 Benutzereinstellungen, Diagnose-Snapshot und maximal 500 Verlaufseinträge: `%LOCALAPPDATA%\DriverPilot`. Wartungsstatus, Paketbeobachtung und maximal 100 Installationsresultate: `%PROGRAMDATA%\DriverPilot`. Windows-Benachrichtigungen hängen von den Windows-Benachrichtigungseinstellungen ab. Die GUI muss für Benachrichtigungen im Infobereich laufen. Der Wartungsauftrag benötigt eine angemeldete Sitzung.
 
 Die Automatik lässt sich über Einstellungen deaktivieren. Eine verriegelte fehlerhafte/unterbrochene Installation wird nicht automatisch erneut versucht. Erst nach manueller Prüfung darf ein Administrator den `Pending`-Eintrag in der geschützten Wartungsdatei zurücksetzen.

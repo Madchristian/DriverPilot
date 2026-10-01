@@ -1,5 +1,6 @@
 ﻿param([switch]$Disable,[string]$PackagePath='', [int]$WaitForPid=0,[string]$ApprovedManifestHash='')
 $ErrorActionPreference='Stop'
+$env:PSModulePath=[IO.Path]::Combine([Environment]::GetFolderPath('System'),'WindowsPowerShell\v1.0\Modules')
 if($Disable){Disable-ScheduledTask -TaskName 'DriverPilot Maintenance' -ErrorAction Stop | Out-Null;exit 0}
 $source=if($PackagePath){[IO.Path]::GetFullPath($PackagePath)}else{$PSScriptRoot}
 $target=Join-Path $env:ProgramFiles 'DriverPilot'
@@ -52,6 +53,22 @@ function Enter-UpdateLock([string]$Name){
  try{if(-not $guard.WaitOne(0)){throw 'Another app update is already running.'};return $guard}
  catch{$guard.Dispose();throw}
 }
+function Get-InstallationOwner($Metadata,[string]$Sid,[string]$ProfilePath){
+ if($Metadata -and ($Metadata.PSObject.Properties.Name -contains 'OwnerSid' -or $Metadata.PSObject.Properties.Name -contains 'OwnerProfilePath')){
+  if($Metadata.OwnerSid -ne $Sid -or $Metadata.OwnerProfilePath -ne $ProfilePath){throw 'DriverPilot gehoert einem anderen Benutzer oder die Besitzerzuordnung ist unvollstaendig. Einrichtung als urspruenglicher Benutzer starten.'}
+ }
+ return @{OwnerSid=$Sid;OwnerProfilePath=$ProfilePath}
+}
+function Assert-NoPendingUninstall([string]$SharedRoot){
+ if(Test-Path -LiteralPath (Join-Path $SharedRoot 'UninstallPending')){throw 'Eine DriverPilot-Deinstallation ist noch nicht abgeschlossen. Zuerst die Deinstallation erneut ausfuehren; keine neue Version darueber installieren.'}
+}
+function Assert-SetupRuntimeIdle {
+ # A live starting/suspended process may have no readable image path yet.
+ # Match by name across sessions, conservatively including portable instances;
+ # a failed query is unknown, never proof that it is safe to replace the app.
+ $running=@(Get-CimInstance Win32_Process -Filter "Name='DriverPilot.exe'" -ErrorAction Stop)
+ if($running.Count){throw 'DriverPilot laeuft noch. Bitte alle Instanzen beenden.'}
+}
 # An update can ONLY be orchestrated by the protected, already installed updater.
 # Bootstrap is supplied by an independently authenticated installer, never by an update package.
 if($PackagePath){
@@ -65,6 +82,7 @@ Add-Type -Path (Join-Path $PSScriptRoot 'PackageTrust.cs')
 $certificate=Join-Path $PSScriptRoot 'DriverPilot.cer'
 $updateLock=Enter-UpdateLock 'Global\DriverPilot.AuthenticatedAppUpdate'
 try{
+Assert-NoPendingUninstall $data
 $current='0.0.0'
 if(Test-Path -LiteralPath $target){
  Assert-ProtectedTree $target
@@ -79,6 +97,17 @@ $replace=[IO.Path]::GetFullPath($source).TrimEnd('\') -ne [IO.Path]::GetFullPath
 Assert-PathAncestors $data
 Assert-TrustedAcl (Get-Acl -LiteralPath $env:ProgramData) -AllowChildCreation
 if(Test-Path -LiteralPath $data){Assert-ProtectedTree $data}else{New-ProtectedDirectory $data}
+$metadataPath=Join-Path $data 'app-install.json'
+$metadata=if(Test-Path -LiteralPath $metadataPath){Get-Content -LiteralPath $metadataPath -Raw | ConvertFrom-Json}else{$null}
+$identity=[Security.Principal.WindowsIdentity]::GetCurrent()
+$owner=Get-InstallationOwner $metadata $identity.User.Value ([Environment]::GetFolderPath('UserProfile'))
+# Legacy installations have no owner receipt: an existing task must belong to this account.
+$existingTask=@(Get-ScheduledTask -ErrorAction Stop | Where-Object {$_.TaskPath -eq '\' -and $_.TaskName -eq 'DriverPilot Maintenance'})
+if($existingTask.Count){
+ $taskUser=$existingTask[0].Principal.UserId
+ $taskSid=if($taskUser -match '^S-1-'){([Security.Principal.SecurityIdentifier]$taskUser).Value}else{([Security.Principal.NTAccount]$taskUser).Translate([Security.Principal.SecurityIdentifier]).Value}
+ if($taskSid -ne $owner.OwnerSid){throw 'Wartungsauftrag gehoert einem anderen Benutzer. Einrichtung abgebrochen.'}
+}
 if($replace){
 $stage=Join-Path $data ('AppStaging-'+[guid]::NewGuid().ToString('N'))
 $next=Join-Path $env:ProgramFiles ('DriverPilot.next-'+[guid]::NewGuid().ToString('N'))
@@ -100,8 +129,7 @@ try{
  [DriverPilot.Security.PackageTrust]::AssertApproval($ready,$ApprovedManifestHash)
  Assert-ProtectedTree $next
  if($WaitForPid -gt 0){Wait-Process -Id $WaitForPid -Timeout 30 -ErrorAction SilentlyContinue}
- $running=@(Get-Process DriverPilot -ErrorAction SilentlyContinue | Where-Object {$_.Path -eq $exe})
- if($running.Count){throw 'DriverPilot laeuft noch. Bitte beenden.'}
+ Assert-SetupRuntimeIdle
  if(Test-Path -LiteralPath $target){Assert-ProtectedTree $target}
  Publish-PackageDirectory $target $next $previous
 }finally{
@@ -125,5 +153,5 @@ $run='HKCU:\Software\Microsoft\Windows\CurrentVersion\Run'
 New-Item -Path $run -Force | Out-Null
 New-ItemProperty -Path $run -Name 'DriverPilot' -Value ('"'+$exe+'" --tray') -PropertyType String -Force | Out-Null
 
-@{Version=[Diagnostics.FileVersionInfo]::GetVersionInfo((Join-Path $target 'DriverPilot.dll')).FileVersion;Time=(Get-Date).ToString('o')} | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $data 'app-install.json') -Encoding UTF8
+@{Version=[Diagnostics.FileVersionInfo]::GetVersionInfo((Join-Path $target 'DriverPilot.dll')).FileVersion;Time=(Get-Date).ToString('o');OwnerSid=$owner.OwnerSid;OwnerProfilePath=$owner.OwnerProfilePath} | ConvertTo-Json | Set-Content -LiteralPath $metadataPath -Encoding UTF8
 }finally{$updateLock.ReleaseMutex();$updateLock.Dispose()}

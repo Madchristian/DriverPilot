@@ -16,6 +16,8 @@
     <Content Include="../../docs/security/UPDATE-SECURITY.md" Link="UPDATE-SECURITY.md" TargetPath="UPDATE-SECURITY.md" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <Content Include="../../docs/security/ZERTIFIKAT-ANLEITUNG.txt" Link="ZERTIFIKAT-ANLEITUNG.txt" TargetPath="ZERTIFIKAT-ANLEITUNG.txt" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <Content Include="../../installer/Setup.ps1" Link="Setup.ps1" TargetPath="Setup.ps1" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="../../installer/Uninstall.ps1" Link="Uninstall.ps1" TargetPath="Uninstall.ps1" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="../../docs/UNINSTALL.md" Link="UNINSTALL.md" TargetPath="UNINSTALL.md" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <Content Include="../../README.md" Link="README.md" TargetPath="README.md" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
   <ItemGroup>

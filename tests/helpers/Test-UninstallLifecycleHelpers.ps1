@@ -28,6 +28,21 @@ $base=if($env:TMPDIR){$env:TMPDIR}else{[IO.Path]::GetTempPath()}
 $scratch=Join-Path $base ('uninstall-helper-unit-'+[guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Path $scratch | Out-Null
 try{
+ # Execute the productive lifecycle fixture's parser, without invoking any installer.
+ $lifecycle=Get-Content -LiteralPath (Join-Path $PSScriptRoot '../Test-UninstallLifecycle.ps1') -Raw
+ $parseOwner=[regex]::Match($lifecycle,'(?m)^\s*\$wrongOwner=.+ConvertFrom-Json\s*$').Value.Trim()
+ if(-not $parseOwner){throw 'Missing lifecycle owner parser'}
+ $ownerPath=Join-Path $scratch 'owner.json'
+ foreach($bom in @($false,$true)){
+  [IO.File]::WriteAllText($ownerPath,'{"OwnerSid":"synthetic-owner"}',[Text.UTF8Encoding]::new($bom))
+  $ownerBytes=[IO.File]::ReadAllBytes($ownerPath)
+  . ([scriptblock]::Create($parseOwner))
+  if($wrongOwner.OwnerSid -cne 'synthetic-owner'){throw 'Owner JSON parse changed value'}
+  $after=[IO.File]::ReadAllBytes($ownerPath)
+  if([Convert]::ToBase64String($after) -cne [Convert]::ToBase64String($ownerBytes)){throw 'Owner parse changed original bytes'}
+ }
+ Remove-Item -LiteralPath $ownerPath
+ Write-Output 'PASS lifecycle owner parser handles UTF-8 with/without BOM without changing original bytes'
  foreach($choice in $cases){
   $hashes=@{};$categories=@{}
   foreach($category in @('Settings','Logs','Backups','Unselected')){

@@ -39,7 +39,7 @@ function Assert-UninstallIdle($Processes,$Task){
 
 function Get-UninstallDataPlan([string]$UserRoot,[string]$SharedRoot,[switch]$RemoveSettings,[switch]$RemoveLogs,[switch]$RemoveBackups){
  if($RemoveSettings){
-  foreach($name in @('preferences.json','controls.json')){foreach($suffix in @('','.tmp')){[pscustomobject]@{Path=(Join-Path $UserRoot ($name+$suffix));Directory=$false}}}
+  foreach($name in @('preferences.json','controls.json','remote-diagnosis.json')){foreach($suffix in @('','.tmp')){[pscustomobject]@{Path=(Join-Path $UserRoot ($name+$suffix));Directory=$false}}}
   [pscustomobject]@{Path=(Join-Path $UserRoot 'Codex');Directory=$true}
  }
  if($RemoveLogs){

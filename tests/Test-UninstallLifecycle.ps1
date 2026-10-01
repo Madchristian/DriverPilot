@@ -265,10 +265,10 @@ try{
  # Never infer a retained category from an empty/missing fixture left by a prior case.
  foreach($choice in Get-UninstallChoices){
   $stateHashes=[ordered]@{};$categories=@{}
-  foreach($name in @('preferences.json','controls.json')){
+  foreach($name in @('preferences.json','controls.json','remote-diagnosis.json')){
    foreach($suffix in @('','.tmp')){
     $path=Join-Path $userData ($name+$suffix)
-    $text=if($name -eq 'preferences.json'){'{"Monitor":false,"Notify":false}'}else{'{"PauseUntil":"2099-01-01T00:00:00","Days":[0],"StartHour":12,"EndHour":17,"ObservationDays":30,"BlockedDevices":[],"BlockedUpdates":[],"BusyProcesses":[],"NetworkLimitMB":2}'}
+    $text=if($name -eq 'preferences.json'){'{"Monitor":false,"Notify":false}'}elseif($name -eq 'remote-diagnosis.json'){'{"fixture":"synthetic-local-access-no-real-token"}'}else{'{"PauseUntil":"2099-01-01T00:00:00","Days":[0],"StartHour":12,"EndHour":17,"ObservationDays":30,"BlockedDevices":[],"BlockedUpdates":[],"BusyProcesses":[],"NetworkLimitMB":2}'}
     Seed $path $text;$categories[$path]='Settings'
    }
   }

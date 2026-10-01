@@ -79,7 +79,7 @@ begin
   else
   begin
     if MsgBox('DriverPilot entfernen? Laufende GUI bitte zuerst im Infobereich beenden. Eine laufende Wartung wird nicht abgebrochen; in diesem Fall wird die Deinstallation zurueckgestellt.' + #13#10 + 'Zertifikatsvertrauen und installierte Treiber bleiben unveraendert.', mbConfirmation, MB_YESNO or MB_DEFBUTTON2) <> IDYES then Exit;
-    Settings := MsgBox('Einstellungen einschliesslich Wartungsregeln und eigener Codex-Anmeldung dauerhaft loeschen? Standard: Nein (behalten).', mbConfirmation, MB_YESNO or MB_DEFBUTTON2) = IDYES;
+    Settings := MsgBox('Einstellungen einschliesslich Wartungsregeln, eigener Codex-Anmeldung und lokalem Ferndiagnose-Zugang dauerhaft loeschen? Serverfaelle bleiben unveraendert. Standard: Nein (behalten).', mbConfirmation, MB_YESNO or MB_DEFBUTTON2) = IDYES;
     Logs := MsgBox('Diagnoseprotokolle, Chat, gespeicherte Scans und Wartungsnachweise dauerhaft loeschen? Standard: Nein (behalten).', mbConfirmation, MB_YESNO or MB_DEFBUTTON2) = IDYES;
     Backups := MsgBox('Treibersicherungen unter ProgramData\DriverPilot\Backups dauerhaft loeschen? Dies entfernt den manuellen Rueckweg zu gesicherten Treibern. Standard: Nein (behalten).', mbConfirmation, MB_YESNO or MB_DEFBUTTON2) = IDYES;
   end;

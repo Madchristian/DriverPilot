@@ -13,7 +13,9 @@ foreach($f in $ast.FindAll({param($n) $n -is [Management.Automation.Language.Fun
 $userRoot='C:\Users\Fixture\AppData\Local\DriverPilot';$shared='C:\ProgramData\DriverPilot'
 Assert (@(Get-UninstallDataPlan $userRoot $shared).Count -eq 0) 'Default must preserve all data'
 $settings=@(Get-UninstallDataPlan $userRoot $shared -RemoveSettings)
-Assert ($settings.Count -eq 5) 'Settings allowlist includes atomic-save leftovers and the dedicated Codex home'
+Assert ($settings.Path -contains "$userRoot\remote-diagnosis.json") 'Remote diagnosis local access belongs to settings'
+Assert ($settings.Path -contains "$userRoot\remote-diagnosis.json.tmp") 'Interrupted remote access saves belong to settings'
+Assert ($settings.Count -eq 7) 'Settings allowlist includes remote access, atomic-save leftovers and the dedicated Codex home'
 Assert ($settings.Path -contains "$userRoot\preferences.json") 'Preferences selected'
 Assert ($settings.Path -contains "$userRoot\controls.json") 'Controls selected'
 Assert ($settings.Path -contains "$userRoot\Codex") 'Dedicated Codex authentication/configuration selected'

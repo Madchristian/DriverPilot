@@ -21,7 +21,7 @@ Die Auswahl wirkt nur auf bekannte DriverPilot-Daten, nicht auf andere Benutzerp
 
 | Auswahl | Bedeutung | Standard |
 | --- | --- | --- |
-| Einstellungen löschen | Benutzereinstellungen, Wartungsregeln und eigener DriverPilot-Codex-Anmeldespeicher | Behalten |
+| Einstellungen löschen | Benutzereinstellungen, Wartungsregeln, eigener DriverPilot-Codex-Anmeldespeicher und lokaler Ferndiagnose-Zugang samt Fallreferenz (`remote-diagnosis.json` einschließlich `.tmp`) | Behalten |
 | Protokolle löschen | Gespeicherte Diagnosen, Chat, Verlauf, Hersteller-/Beobachtungsdaten und Wartungsnachweise | Behalten |
 | Treibersicherungen löschen | `%ProgramData%\DriverPilot\Backups` einschließlich exportierter INF-Pakete | **Behalten** |
 
@@ -41,6 +41,10 @@ Bei einem Fehler bleibt der Deinstallationseintrag für einen erneuten Versuch e
 ```
 
 Danach den Windows-Deinstallationseintrag erneut ausführen, um auch die Inno-eigenen Dateien und den Eintrag zu entfernen. Keine `-Remove...`-Schalter ergänzen, wenn Daten erhalten bleiben sollen. Nur den installierten, geschützten Helfer verwenden, kein beliebiges heruntergeladenes Skript.
+
+Die Auswahl **Einstellungen löschen** entfernt nur den lokalen Ferndiagnose-Zugang
+und die lokale Fallreferenz. Sie löscht keine serverseitigen Fälle und widerruft
+keine serverseitigen Tokens; dafür ist eine getrennte serverseitige Aktion nötig.
 
 ## Zertifikatsvertrauen bleibt separat
 

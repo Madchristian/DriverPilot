@@ -1,7 +1,9 @@
 $warnings = [System.Collections.Generic.List[string]]::new()
+# Erfassungsstatus je Bereich: Lücken dürfen im Ferndiagnosebericht nie wie ein unauffälliger Befund aussehen.
+$collection=[ordered]@{Hardware='complete';Devices='complete';SystemEvents='complete';WlanEvents='unavailable'}
 function Read-HardwareCim($class) {
   try { Get-CimInstance $class -ErrorAction Stop | Select-Object -First 1 }
-  catch { $warnings.Add("Hardwareabfrage unvollständig: $class"); $null }
+  catch { $warnings.Add("Hardwareabfrage unvollständig: $class"); $collection.Hardware='failed'; $null }
 }
 $os=Read-HardwareCim Win32_OperatingSystem
 $cpu=Read-HardwareCim Win32_Processor
@@ -38,11 +40,13 @@ try {
   $eventErrors=@()
   $events=@(Get-WinEvent -LogName System -FilterXPath $query -MaxEvents 300 -ErrorAction SilentlyContinue -ErrorVariable eventErrors)
   $actualErrors=@($eventErrors | Where-Object {$_.FullyQualifiedErrorId -notmatch 'NoMatchingEventsFound'})
-  if($actualErrors.Count){$warnings.Add('Windows-Ereignisprotokoll konnte nicht vollständig gelesen werden.')}
+  if($actualErrors.Count){$warnings.Add('Windows-Ereignisprotokoll konnte nicht vollständig gelesen werden.');$collection.SystemEvents='failed'}
+  elseif($events.Count -ge 300){$collection.SystemEvents='truncated'}
   # WLAN-Verbindungsabbrüche ergänzen, falls das optionale Protokoll vorhanden ist.
   $wlanLog=Get-WinEvent -ListLog 'Microsoft-Windows-WLAN-AutoConfig/Operational' -ErrorAction SilentlyContinue
   if($wlanLog -and $wlanLog.IsEnabled){
-   $events+=@(Get-WinEvent -FilterHashtable @{LogName='Microsoft-Windows-WLAN-AutoConfig/Operational';Id=8003;StartTime=(Get-Date).AddDays(-1)} -MaxEvents 100 -ErrorAction SilentlyContinue)
+   $wlanEvents=@(Get-WinEvent -FilterHashtable @{LogName='Microsoft-Windows-WLAN-AutoConfig/Operational';Id=8003;StartTime=(Get-Date).AddDays(-1)} -MaxEvents 100 -ErrorAction SilentlyContinue)
+   $collection.WlanEvents=$(if($wlanEvents.Count -ge 100){'truncated'}else{'complete'});$events+=$wlanEvents
   }
   $disks=@(Get-CimInstance Win32_DiskDrive)
   $enriched=@(foreach($event in $events){
@@ -65,7 +69,7 @@ try {
     if($message.Length -gt 700){$message=$message.Substring(0,700)}
     $first=($group.Group.Event.TimeCreated | Sort-Object | Select-Object -First 1)
     $last=($group.Group.Event.TimeCreated | Sort-Object -Descending | Select-Object -First 1)
-    $findings.Add([pscustomobject]@{Key="event:$($row.Group)";Title="$($e.ProviderName) · Ereignis $($e.Id)";Detail="$($group.Count)x zwischen $($first.ToString('HH:mm')) und $($last.ToString('HH:mm')). $($row.Label) $message";Severity=$(if($group.Count -ge 3 -or $e.Level -le 2){'Warnung'}else{'Info'});Time=$last.ToString('dd.MM.yyyy HH:mm');DeviceRef=$row.Target;Count=$group.Count;FirstSeen=$first.ToString('o');LastSeen=$last.ToString('o')})
+    $findings.Add([pscustomobject]@{Key="event:$($row.Group)";Title="$($e.ProviderName) · Ereignis $($e.Id)";Detail="$($group.Count)x zwischen $($first.ToString('HH:mm')) und $($last.ToString('HH:mm')). $($row.Label) $message";Severity=$(if($group.Count -ge 3 -or $e.Level -le 2){'Warnung'}else{'Info'});Time=$last.ToString('dd.MM.yyyy HH:mm');DeviceRef=$row.Target;Count=$group.Count;FirstSeen=$first.ToString('o');LastSeen=$last.ToString('o');Source=[string]$e.ProviderName;EventId=[int]$e.Id;Level=[int](($group.Group.Event.Level | Measure-Object -Minimum).Minimum)})
   }
-} catch {$warnings.Add("Ereignisprüfung fehlgeschlagen: $($_.Exception.Message)")}
-[pscustomobject]@{Windows="$($os.Caption) · Build $($os.BuildNumber)";Cpu=([string]$cpu.Name).Trim();Board=[string]$board.Product;Bios=[string]$bios.SMBIOSBIOSVersion;RamGB=[math]::Round($ram);Devices=@($devices | Sort-Object Class,Name);Findings=@($findings.ToArray());Warnings=@($warnings.ToArray());Hardware=$hardware} | ConvertTo-Json -Depth 6 -Compress
+} catch {$warnings.Add("Ereignisprüfung fehlgeschlagen: $($_.Exception.Message)");$collection.SystemEvents='failed'}
+[pscustomobject]@{Windows="$($os.Caption) · Build $($os.BuildNumber)";Cpu=([string]$cpu.Name).Trim();Board=[string]$board.Product;Bios=[string]$bios.SMBIOSBIOSVersion;RamGB=[math]::Round($ram);Devices=@($devices | Sort-Object Class,Name);Findings=@($findings.ToArray());Warnings=@($warnings.ToArray());Hardware=$hardware;Collection=[pscustomobject]$collection} | ConvertTo-Json -Depth 6 -Compress

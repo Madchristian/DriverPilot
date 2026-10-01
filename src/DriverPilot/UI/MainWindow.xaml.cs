@@ -19,6 +19,8 @@ public partial class MainWindow : Window
     DateTimeOffset? reportScanAt;
     readonly ReportScanContext reportContext = new();
     SystemReportWindow? reportWindow;
+    RemoteDiagnosisWindow? remoteWindow;
+    Guid reportScanId;
     bool ready,busy,updateBusy,manufacturerBusy,exit;
     string chatPrefix="";
     DateTime lastUpdates=DateTime.MinValue;
@@ -66,9 +68,21 @@ public partial class MainWindow : Window
         }
         finally { reportWindow=null; }
     }
+    void RemoteDiagnosisClick(object sender,RoutedEventArgs e)
+    {
+        if(busy){StatusLine.Text="Bitte warten, bis die laufende Prüfung abgeschlossen ist.";return;}
+        // Opening sends nothing. Without a fresh scan the dialog still shows an existing case.
+        var fresh=SystemReportSession.IsFresh(snapshot,reportScanAt,DateTimeOffset.UtcNow);
+        try
+        {
+            remoteWindow=new RemoteDiagnosisWindow(fresh?new RemoteScan(snapshot!,reportScanId,reportScanAt!.Value):null){Owner=this};
+            remoteWindow.ShowDialog();
+        }
+        finally { remoteWindow=null; }
+    }
     async Task Scan(bool manual=true)
     {
-        if(busy||reportWindow!=null)return;busy=true;reportScanAt=null;SystemReportButton.IsEnabled=false;ScanButton.IsEnabled=false;StatusLine.Text="Geräte und Windows-Ereignisse werden geprüft …";
+        if(busy||reportWindow!=null||remoteWindow!=null)return;busy=true;reportScanAt=null;SystemReportButton.IsEnabled=false;ScanButton.IsEnabled=false;StatusLine.Text="Geräte und Windows-Ereignisse werden geprüft …";
         var generation=reportContext.BeginScan();
         ManufacturerList.ItemsSource=null;ManufacturerStatus.Text="Für diesen Scan noch keine Herstellerprüfung abgeschlossen.";
         try
@@ -95,7 +109,7 @@ public partial class MainWindow : Window
             Store.Save("preferences.json",preferences);RenderSnapshot();
             if(manual)Store.Log("Systemprüfung",$"{next.Devices.Count} Geräte, {next.Findings.Count} Hinweise.");
             StatusLine.Text="Letzte Prüfung: "+DateTime.Now.ToString("HH:mm")+" · "+(next.Warnings.Count==0?"Gerätestatus und Ereignisse gelesen.":string.Join(" · ",next.Warnings));
-            reportScanAt=DateTimeOffset.UtcNow;
+            reportScanAt=DateTimeOffset.UtcNow;reportScanId=Guid.NewGuid();
             reportContext.CompleteScan(generation, snapshot, reportScanAt.Value);
         }
         catch(Exception ex){StatusLine.Text="Prüfung fehlgeschlagen: "+ex.Message;Store.Log("Prüffehler",ex.Message);}

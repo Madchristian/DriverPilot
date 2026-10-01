@@ -1,0 +1,236 @@
+{
+  "description": "Gemeinsamer Rahmen aller Fixtures. Alle Daten sind synthetisch; Tokens, Einladungen und IDs sind keine echten Zugangsdaten.",
+  "now": "2026-10-03T14:06:41Z",
+  "privacy_notice_version": "2026-10-01.1",
+  "report": "valid/case-create-request/wow-crash.json",
+  "invalid": {
+    "case-create-request/byte-order-mark.json": {
+      "kind": "malformed_json",
+      "status": 400,
+      "code": "invalid_json",
+      "why": "UTF-8-BOM vor dem Objekt."
+    },
+    "case-create-request/consent-missing.json": {
+      "kind": "schema",
+      "status": 422,
+      "code": "consent_required",
+      "why": "consent fehlt."
+    },
+    "case-create-request/consent-not-approved.json": {
+      "kind": "schema",
+      "status": 422,
+      "code": "consent_required",
+      "why": "upload_approved ist false."
+    },
+    "case-create-request/control-character.json": {
+      "kind": "schema",
+      "status": 422,
+      "code": "schema_violation",
+      "why": "Steuerzeichen im Freitext."
+    },
+    "case-create-request/description-too-long.json": {
+      "kind": "schema",
+      "status": 422,
+      "code": "schema_violation",
+      "why": "Freitext über 2000 Zeichen."
+    },
+    "case-create-request/device-ref-unknown.json": {
+      "kind": "semantic",
+      "status": 422,
+      "code": "reference_invalid",
+      "why": "device_ref ohne passendes Gerät."
+    },
+    "case-create-request/duplicate-device-id.json": {
+      "kind": "semantic",
+      "status": 422,
+      "code": "reference_invalid",
+      "why": "Geräte-ID doppelt vergeben."
+    },
+    "case-create-request/duplicate-key.json": {
+      "kind": "malformed_json",
+      "status": 400,
+      "code": "invalid_json",
+      "why": "Doppelter Schlüssel schema_version."
+    },
+    "case-create-request/finding-outside-window.json": {
+      "kind": "semantic",
+      "status": 422,
+      "code": "time_range_invalid",
+      "why": "Befund beginnt vor dem Beobachtungsfenster."
+    },
+    "case-create-request/full-instance-id.json": {
+      "kind": "schema",
+      "status": 422,
+      "code": "schema_violation",
+      "why": "Vollständige Instanz-ID am Gerät."
+    },
+    "case-create-request/hardware-with-ip.json": {
+      "kind": "semantic",
+      "status": 422,
+      "code": "text_rejected",
+      "why": "IP-Adresse in einem Hardwarefeld."
+    },
+    "case-create-request/local-time-offset.json": {
+      "kind": "schema",
+      "status": 422,
+      "code": "schema_violation",
+      "why": "Zeitpunkt nicht in UTC mit Z."
+    },
+    "case-create-request/malformed.json": {
+      "kind": "malformed_json",
+      "status": 400,
+      "code": "invalid_json",
+      "why": "Abgeschnittener Body."
+    },
+    "case-create-request/missing-null-field.json": {
+      "kind": "schema",
+      "status": 422,
+      "code": "schema_violation",
+      "why": "Pflichtfeld wow fehlt statt null."
+    },
+    "case-create-request/observation-window-too-long.json": {
+      "kind": "semantic",
+      "status": 422,
+      "code": "time_range_invalid",
+      "why": "Beobachtungsfenster 24 Stunden und 1 Sekunde."
+    },
+    "case-create-request/privacy-notice-outdated.json": {
+      "kind": "semantic",
+      "status": 422,
+      "code": "privacy_notice_outdated",
+      "why": "Zustimmung zu einer alten Hinweisversion."
+    },
+    "case-create-request/raw-event-message.json": {
+      "kind": "schema",
+      "status": 422,
+      "code": "schema_violation",
+      "why": "Rohe Ereignisnachricht im Befund."
+    },
+    "case-create-request/scan-in-future.json": {
+      "kind": "semantic",
+      "status": 422,
+      "code": "clock_skew",
+      "why": "Scan liegt gut 13 Minuten nach der Serverzeit."
+    },
+    "case-create-request/scan-too-old.json": {
+      "kind": "semantic",
+      "status": 422,
+      "code": "scan_too_old",
+      "why": "Scan ist bei Annahme gut 16 Minuten alt."
+    },
+    "case-create-request/text-with-email.json": {
+      "kind": "semantic",
+      "status": 422,
+      "code": "text_rejected",
+      "why": "E-Mail-Adresse im Freitext."
+    },
+    "case-create-request/text-with-token.json": {
+      "kind": "semantic",
+      "status": 422,
+      "code": "text_rejected",
+      "why": "Zugangsdaten-Marker im Freitext."
+    },
+    "case-create-request/text-with-user-path.json": {
+      "kind": "semantic",
+      "status": 422,
+      "code": "text_rejected",
+      "why": "Windows-Pfad mit Benutzerordner im Freitext."
+    },
+    "case-create-request/too-many-devices.json": {
+      "kind": "schema",
+      "status": 422,
+      "code": "schema_violation",
+      "why": "65 Geräte bei Limit 64."
+    },
+    "case-create-request/top-level-array.json": {
+      "kind": "malformed_json",
+      "status": 400,
+      "code": "invalid_json",
+      "why": "Wurzel ist kein Objekt."
+    },
+    "case-create-request/unknown-event-source.json": {
+      "kind": "schema",
+      "status": 422,
+      "code": "schema_violation",
+      "why": "Nicht erlaubte Ereignisquelle."
+    },
+    "case-create-request/unknown-top-level-field.json": {
+      "kind": "schema",
+      "status": 422,
+      "code": "schema_violation",
+      "why": "Unbekanntes Feld hostname."
+    },
+    "case-create-request/unsupported-major-version.json": {
+      "kind": "schema",
+      "status": 422,
+      "code": "unsupported_schema_version",
+      "why": "Unbekannte Major-Version."
+    },
+    "feedback-request/note-too-long.json": {
+      "kind": "schema",
+      "status": 422,
+      "code": "schema_violation",
+      "why": "Notiz über 2000 Zeichen."
+    },
+    "feedback-request/note-with-url.json": {
+      "kind": "semantic",
+      "status": 422,
+      "code": "text_rejected",
+      "why": "URL in der Notiz."
+    },
+    "feedback-request/revision-missing.json": {
+      "kind": "schema",
+      "status": 422,
+      "code": "schema_violation",
+      "why": "result_revision fehlt."
+    },
+    "feedback-request/unknown-outcome.json": {
+      "kind": "schema",
+      "status": 422,
+      "code": "schema_violation",
+      "why": "Nicht erlaubter Wert für outcome."
+    },
+    "result/executable-action.json": {
+      "kind": "schema",
+      "status": null,
+      "code": null,
+      "why": "Ausführbares Feld command im Schritt."
+    },
+    "result/fact-without-reference.json": {
+      "kind": "schema",
+      "status": null,
+      "code": null,
+      "why": "Fakt ohne Beleg."
+    },
+    "result/plain-http-source.json": {
+      "kind": "schema",
+      "status": null,
+      "code": null,
+      "why": "Quelle ohne HTTPS."
+    },
+    "result/probability.json": {
+      "kind": "schema",
+      "status": null,
+      "code": null,
+      "why": "Scheinpräzise Wahrscheinlichkeit."
+    },
+    "result/proven-hypothesis.json": {
+      "kind": "schema",
+      "status": null,
+      "code": null,
+      "why": "Hypothese als bewiesen markiert."
+    },
+    "result/source-with-userinfo.json": {
+      "kind": "schema",
+      "status": null,
+      "code": null,
+      "why": "Quelle mit Benutzerangabe im Host."
+    },
+    "result/unknown-risk-class.json": {
+      "kind": "schema",
+      "status": null,
+      "code": null,
+      "why": "Nicht erlaubte Risikoklasse."
+    }
+  }
+}

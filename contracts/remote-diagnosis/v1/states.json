@@ -1,0 +1,36 @@
+{
+  "description": "Zustandsautomat eines Falls aus Sicht des Clients. Jeder nicht aufgeführte Übergang ist unzulässig. Gelöschte und abgelaufene Fälle haben keinen Zustand: Sie sind nicht mehr abrufbar (404).",
+  "initial": [
+    {
+      "to": "queued",
+      "when": "Annahme mit external_ai_allowed=true, während ein Modellanbieter administrativ aktiviert ist."
+    },
+    {
+      "to": "awaiting_review",
+      "when": "Annahme mit external_ai_allowed=false oder ohne aktivierten Modellanbieter. Es gibt keinen Providerrequest."
+    }
+  ],
+  "transitions": [
+    { "from": "queued", "to": "analyzing", "trigger": "worker", "when": "Der Worker übernimmt den Auftrag mit einem dauerhaften Lease." },
+    { "from": "queued", "to": "awaiting_review", "trigger": "admin", "when": "Christian übernimmt den Fall manuell; der Auftrag wird entwertet." },
+    { "from": "analyzing", "to": "awaiting_review", "trigger": "worker", "when": "Ein schemagültiger Entwurf liegt vor." },
+    { "from": "analyzing", "to": "queued", "trigger": "worker", "when": "Transienter Fehler bei höchstens zwei automatischen Versuchen je Fall." },
+    { "from": "analyzing", "to": "analysis_failed", "trigger": "worker", "when": "Versuche erschöpft, Budget erschöpft, Antwort ungültig oder Ausgang des Aufrufs unbekannt." },
+    { "from": "analysis_failed", "to": "queued", "trigger": "admin", "when": "Ausdrücklicher, budgetierter Neuversuch." },
+    { "from": "analysis_failed", "to": "awaiting_review", "trigger": "admin", "when": "Christian analysiert manuell." },
+    { "from": "awaiting_review", "to": "queued", "trigger": "admin", "when": "Ausdrücklicher, budgetierter Neuversuch statt Freigabe; nur mit external_ai_allowed=true." },
+    { "from": "awaiting_review", "to": "released", "trigger": "admin", "when": "Freigabe der Revision 1 mit optimistischer Versionsprüfung." },
+    { "from": "released", "to": "released", "trigger": "admin", "when": "Freigabe einer neuen Revision. Bis dahin bleibt die vorige Revision sichtbar; ein neuer Entwurf ändert den Zustand nicht." }
+  ],
+  "polling_ends_in": ["released", "analysis_failed"],
+  "removal": [
+    { "trigger": "client", "when": "DELETE durch den Eigentümer." },
+    { "trigger": "admin", "when": "Löschung in der Adminansicht oder Widerruf des Clientzugangs (Zugriff endet beim nächsten Request)." },
+    { "trigger": "clock", "when": "expires_at erreicht. Der Zugriff ist sofort gesperrt, die physische Bereinigung folgt binnen 24 Stunden." }
+  ],
+  "invariants": [
+    "Eine späte Workerantwort ändert nie einen freigegebenen, gelöschten oder abgelaufenen Fall.",
+    "Eine freigegebene Revision ist unveränderlich.",
+    "Der Client sieht nie einen ungeprüften Entwurf."
+  ]
+}

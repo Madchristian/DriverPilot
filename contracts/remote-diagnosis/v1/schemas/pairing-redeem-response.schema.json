@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Antwort 201 von POST /pairings/redeem",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["client_id", "access_token", "expires_at"],
+  "properties": {
+    "client_id": { "$ref": "common.schema.json#/$defs/uuid" },
+    "access_token": {
+      "description": "Opakes Bearer-Token, base64url ohne Padding mit mindestens 256 Bit Zufall. Wird nur in dieser Antwort ausgegeben.",
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_-]{43,128}$"
+    },
+    "expires_at": { "$ref": "common.schema.json#/$defs/timestamp" }
+  }
+}

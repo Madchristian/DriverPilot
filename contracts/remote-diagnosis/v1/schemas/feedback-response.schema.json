@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Antwort 201 von POST /cases/{case_id}/feedback",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["feedback_id", "case_id", "result_revision", "received_at"],
+  "properties": {
+    "feedback_id": { "$ref": "common.schema.json#/$defs/uuid" },
+    "case_id": { "$ref": "common.schema.json#/$defs/uuid" },
+    "result_revision": { "type": "integer", "minimum": 1, "maximum": 1000 },
+    "received_at": { "$ref": "common.schema.json#/$defs/timestamp" }
+  }
+}

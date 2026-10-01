@@ -23,5 +23,7 @@
   <ItemGroup>
     <EmbeddedResource Include="../../assets/branding/DriverPilot.ico" LogicalName="DriverPilot.Assets.DriverPilot.ico" />
   </ItemGroup>
+  <!-- Single source for limits, text markers and error codes: the remote diagnosis contract. -->
+  <ItemGroup><EmbeddedResource Include="../../contracts/remote-diagnosis/v1/rules.json" LogicalName="DriverPilot.Contracts.rules.json" /><EmbeddedResource Include="../../contracts/remote-diagnosis/v1/errors.json" LogicalName="DriverPilot.Contracts.errors.json" /></ItemGroup>
   <ItemGroup><EmbeddedResource Include="Scripts/*.ps1" LogicalName="DriverPilot.Scripts.%(Filename)%(Extension)" /></ItemGroup>
 </Project>

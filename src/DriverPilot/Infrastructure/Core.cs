@@ -7,8 +7,10 @@ namespace DriverPilot;
 
 public record Device(string Name, string Class, string Version, string Provider, string Date, int Code, string Id)
 { public string Status => Code == 0 ? "Bereit" : Code == 22 ? "Deaktiviert" : $"Problem · Code {Code}"; }
-public record Finding(string Key, string Title, string Detail, string Severity, string Time, string DeviceRef="", int Count=1, DateTime? FirstSeen=null, DateTime? LastSeen=null);
-public record Snapshot(string Windows, string Cpu, string Board, string Bios, double RamGB, List<Device> Devices, List<Finding> Findings, List<string> Warnings, HardwareProfile? Hardware=null);
+public record Finding(string Key, string Title, string Detail, string Severity, string Time, string DeviceRef="", int Count=1, DateTime? FirstSeen=null, DateTime? LastSeen=null, string Source="", int EventId=0, int Level=0);
+/// <summary>Per-area scan completeness: complete, truncated, failed or unavailable.</summary>
+public record CollectionStatus(string Hardware="failed", string Devices="failed", string SystemEvents="failed", string WlanEvents="failed");
+public record Snapshot(string Windows, string Cpu, string Board, string Bios, double RamGB, List<Device> Devices, List<Finding> Findings, List<string> Warnings, HardwareProfile? Hardware=null, CollectionStatus? Collection=null);
 public record UpdateRow(string Id, string Title, string Manufacturer, string Class, string Date, string Status);
 public record HistoryRow(string Time, string Action, string Detail);
 public class Preferences

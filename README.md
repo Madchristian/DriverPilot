@@ -62,6 +62,16 @@ Der zusätzliche Bereich prüft unterstützte offizielle Herstellerquellen tägl
 
 Neue belegte Treiberversionen können eine Benachrichtigung auslösen. Ein offener Vergleich oder eine gesperrte Quelle bedeutet nicht „aktuell“. Datum und Quelle sind sichtbar, ein älterer zwischengespeicherter Bericht ist mit seinem Prüfzeitpunkt gekennzeichnet. BIOS, SSD-Firmware und Hersteller-EXE-Pakete werden durch diese Suche weder heruntergeladen noch installiert; die bestehende Windows-Update-Automatik wird nicht erweitert.
 
+### In Arbeit: Hilfe von Christian (betreute Ferndiagnose)
+
+Auf `main` nach 0.3.4 ergänzt und noch **nicht veröffentlicht**: Über **Hilfe von Christian** lässt sich nach einem frischen Scan ein strukturierter Diagnosebericht an einen von Christian betriebenen Server senden. Der zugehörige Server ist ein getrenntes Vorhaben; ohne ihn bleibt nur der lokale Export. Vertrag und Clientverhalten: [contracts/remote-diagnosis/v1](https://github.com/Madchristian/DriverPilot/tree/main/contracts/remote-diagnosis/v1).
+
+- Zugang nur mit Serveradresse und Einmaleinladung von Christian. Das Zugangstoken liegt mit Windows-DPAPI geschützt im Benutzerprofil; es gibt keine eingebaute Adresse und kein eingebautes Geheimnis.
+- Kein Upload beim Start oder beim Scan. Gesendet wird erst nach vollständiger Vorschau, gelesenem Datenschutzhinweis, Zustimmung und Klick. Jede Änderung am Text verwirft die Zustimmung. Externe KI ist eine gesonderte, nicht vorausgewählte Option.
+- Der Bericht enthält ausgewählte Hardwarefelder, höchstens 64 Geräte mit bereinigter PCI-/USB-Modellkennung und höchstens 200 gruppierte Ereignisse (Quelle, Ereignis-ID, Anzahl, Zeitraum) der letzten 24 Stunden sowie den eigenen Freitext. Keine Gerätenamen, Ereignisnachrichten, Instanz-IDs, Seriennummern, Pfade oder Dumps. Erfassungslücken werden als solche gekennzeichnet. Die Textfilter sind Heuristiken und keine Garantie für Anonymität.
+- Ergebnisse erscheinen erst nach Christians Freigabe, als reiner Text, gebunden an den gesendeten Scan. DriverPilot führt keine Empfehlung selbst aus und öffnet keine Links automatisch.
+- Der Fall lässt sich jederzeit auf dem Server löschen und läuft dort nach der im Datenschutzhinweis genannten Frist ab. Die Vorschau lässt sich ohne Server lokal als Datei speichern.
+
 ## Abgeschlossene 0.3-Basis und nachfolgende Absicherung
 
 Die acht ursprünglichen Arbeitsbereiche sind seit 0.3.0 umgesetzt; das bedeutet keine vollständige reale Treiber-/Rollback-Abnahme. Die folgende Übersicht enthält auch die nachfolgende Update-Absicherung ab 0.3.3. Offene Folgearbeiten sind getrennt im [Projektplan und den Milestones](https://github.com/Madchristian/DriverPilot/blob/main/docs/planning/PLAN.md) geführt, nicht als noch ausstehende 0.3-Basis.
@@ -100,6 +110,7 @@ src/DriverPilot/         WPF-Anwendung und Laufzeitcode
   Hardware/             Inventarprofil und Herstellerprüfung
   Infrastructure/       Datenmodelle, lokaler Speicher, PowerShell-Aufrufe
   Monitoring/           Stabilitätsbeobachtung
+  RemoteDiagnosis/      Ferndiagnose: Berichtsprojektion, Vertragsregeln, Serverzugriff
   Reporting/            Bereinigter Systembericht und Freigabedialog
   Scripts/              Eingebettete Windows-Laufzeitskripte
   Security/             Paket- und Signaturprüfung
@@ -121,6 +132,7 @@ Die Quellstruktur ist bewusst vom **flachen Auslieferungspaket** getrennt: `Setu
 dotnet build DriverPilot.slnx -c Release
 dotnet run --project tests/HardwareRouting/HardwareRouting.csproj
 dotnet run --project tests/SystemReport/SystemReport.csproj -- --integration --ui
+dotnet run --project tests/RemoteDiagnosis/RemoteDiagnosis.csproj
 powershell -NoProfile -ExecutionPolicy Bypass -File .\build\Build.ps1
 powershell -NoProfile -ExecutionPolicy Bypass -File .\tests\Test-Pipeline.ps1
 ```

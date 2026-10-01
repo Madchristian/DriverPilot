@@ -1,6 +1,6 @@
 # Verhalten des Windows-Clients (DriverPilot)
 
-Status: **geplantes Verhalten**, die Umsetzung läuft. Dieses Dokument sagt dem Server, was DriverPilot tatsächlich sendet und erwartet. Es ergänzt `README.md` und ändert keine Schemas. Weicht die Umsetzung später ab, wird zuerst dieses Dokument per Pull Request geändert.
+Status: **umgesetzt** in `src/DriverPilot/RemoteDiagnosis` und durch `tests/RemoteDiagnosis` gegen die Schemas und Fixtures geprüft; noch nicht gegen einen laufenden Server getestet. Dieses Dokument sagt dem Server, was DriverPilot tatsächlich sendet und erwartet. Es ergänzt `README.md` und ändert keine Schemas. Weicht die Umsetzung später ab, wird zuerst dieses Dokument per Pull Request geändert.
 
 ## Verbindung
 
@@ -25,7 +25,7 @@ Status: **geplantes Verhalten**, die Umsetzung läuft. Dieses Dokument sagt dem 
 
 ## Bericht
 
-Vor jeder Vorschau ruft der Client `GET /capabilities` ab. Er sendet nur, wenn `protocol_version` mit `1.` beginnt und `report_schema_versions` den Wert `1.0` enthält.
+Der Client ruft `GET /capabilities` nach dem Koppeln und bei jedem Öffnen des Dialogs ab. Er sendet nur, wenn `protocol_version` mit `1.` beginnt und `report_schema_versions` den Wert `1.0` enthält.
 
 | Feld | Was der Client sendet |
 | --- | --- |

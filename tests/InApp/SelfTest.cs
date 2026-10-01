@@ -20,6 +20,7 @@ public static class SelfTest
         findings.Add("Notifications: informational and acknowledged findings suppressed; new warnings enabled.");
         findings.Add(await PowerShell.Run("PolicyTests"));
         findings.Add(FeatureTests.Run());
+        findings.Add(RemoteDiagnosisTests.Run(snapshot));
         findings.Add("Codex tests skipped: app-server starts only for an explicit user action in the app.");
         var window=new MainWindow();window.LoadPreview(snapshot);
         var surface=(FrameworkElement)window.Content;

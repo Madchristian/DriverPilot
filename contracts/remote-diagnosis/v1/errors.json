@@ -1,0 +1,167 @@
+{
+  "description": "Fehlerkatalog der Ferndiagnose-API v1. retry: unchanged = dieselbe Anfrage (gleiche Bytes, gleicher Idempotency-Key) später wiederholen; never = nicht unverändert wiederholen.",
+  "errors": [
+    {
+      "code": "invalid_json",
+      "status": 400,
+      "retry": "never",
+      "meaning": "Body ist kein gültiges UTF-8-JSON-Objekt, beginnt mit einer BOM oder enthält doppelte Schlüssel."
+    },
+    {
+      "code": "idempotency_key_required",
+      "status": 400,
+      "retry": "never",
+      "meaning": "Header Idempotency-Key fehlt oder ist keine UUID in Kleinschreibung."
+    },
+    {
+      "code": "token_invalid",
+      "status": 401,
+      "retry": "never",
+      "meaning": "Bearer-Token fehlt, ist unbekannt, abgelaufen oder widerrufen. Die Fälle sind nicht unterscheidbar; der Client beendet das Polling und verlangt eine neue Einladung."
+    },
+    {
+      "code": "invitation_invalid",
+      "status": 401,
+      "retry": "never",
+      "meaning": "Einladung ist unbekannt, abgelaufen oder bereits eingelöst. Die Fälle sind nicht unterscheidbar."
+    },
+    {
+      "code": "not_found",
+      "status": 404,
+      "retry": "never",
+      "meaning": "Fall ist für diesen Client nicht sichtbar: unbekannt, fremd, gelöscht, abgelaufen oder die ID ist keine UUID. Die Fälle sind nicht unterscheidbar."
+    },
+    {
+      "code": "idempotency_key_conflict",
+      "status": 409,
+      "retry": "never",
+      "meaning": "Der Idempotency-Key wurde von diesem Client bereits mit anderen Body-Bytes angenommen."
+    },
+    {
+      "code": "request_retired",
+      "status": 409,
+      "retry": "never",
+      "meaning": "Der Idempotency-Key gehört zu einem gelöschten Fall. Es wird kein neuer Fall erzeugt."
+    },
+    {
+      "code": "result_revision_conflict",
+      "status": 409,
+      "retry": "never",
+      "meaning": "Die Rückmeldung nennt nicht die aktuell freigegebene Ergebnisrevision, oder es ist noch kein Ergebnis freigegeben."
+    },
+    {
+      "code": "feedback_limit_reached",
+      "status": 409,
+      "retry": "never",
+      "meaning": "Die Höchstzahl an Rückmeldungen für diesen Fall ist erreicht."
+    },
+    {
+      "code": "payload_too_large",
+      "status": 413,
+      "retry": "never",
+      "meaning": "Der Body überschreitet das Uploadlimit in tatsächlichen Bytes, auch bei chunked Übertragung oder fehlender Content-Length."
+    },
+    {
+      "code": "unsupported_media_type",
+      "status": 415,
+      "retry": "never",
+      "meaning": "Content-Type ist nicht application/json (optional mit charset=utf-8)."
+    },
+    {
+      "code": "unsupported_content_encoding",
+      "status": 415,
+      "retry": "never",
+      "meaning": "Der Request trägt einen Content-Encoding-Header. Komprimierte Requests werden nicht angenommen."
+    },
+    {
+      "code": "unsupported_schema_version",
+      "status": 422,
+      "retry": "never",
+      "meaning": "schema_version fehlt oder gehört nicht zu den in /capabilities genannten Versionen."
+    },
+    {
+      "code": "schema_violation",
+      "status": 422,
+      "retry": "never",
+      "meaning": "Der Body verletzt das Schema: unbekanntes Feld, falscher Typ, verletztes Limit oder Muster."
+    },
+    {
+      "code": "consent_required",
+      "status": 422,
+      "retry": "never",
+      "meaning": "consent fehlt oder upload_approved ist nicht true."
+    },
+    {
+      "code": "privacy_notice_outdated",
+      "status": 422,
+      "retry": "never",
+      "meaning": "Die Zustimmung bezieht sich nicht auf die aktuelle Version des Datenschutzhinweises. Der Client lädt /capabilities neu und holt eine neue Zustimmung ein."
+    },
+    {
+      "code": "scan_too_old",
+      "status": 422,
+      "retry": "never",
+      "meaning": "scanned_at liegt bei Annahme länger zurück als erlaubt. Ein neuer Scan ist nötig."
+    },
+    {
+      "code": "clock_skew",
+      "status": 422,
+      "retry": "never",
+      "meaning": "Ein Zeitpunkt des Berichts liegt weiter in der Zukunft als die Toleranz erlaubt. Die Uhr des PCs weicht vermutlich ab."
+    },
+    {
+      "code": "time_range_invalid",
+      "status": 422,
+      "retry": "never",
+      "meaning": "Die Zeitpunkte des Berichts sind untereinander nicht stimmig oder das Beobachtungsfenster ist länger als 24 Stunden."
+    },
+    {
+      "code": "reference_invalid",
+      "status": 422,
+      "retry": "never",
+      "meaning": "Berichtslokale IDs sind nicht eindeutig oder ein device_ref verweist auf kein Gerät des Berichts."
+    },
+    {
+      "code": "text_rejected",
+      "status": 422,
+      "retry": "never",
+      "meaning": "Ein Textfeld enthält einen Marker für Geheimnisse, Pfade oder Kennungen aus rules.json. Die Meldung nennt weder Feldinhalt noch Fundstelle."
+    },
+    {
+      "code": "previous_case_not_found",
+      "status": 422,
+      "retry": "never",
+      "meaning": "previous_case_id verweist auf keinen sichtbaren eigenen Fall. Fremde und unbekannte IDs sind nicht unterscheidbar."
+    },
+    {
+      "code": "rate_limited",
+      "status": 429,
+      "retry": "unchanged",
+      "meaning": "Anfragelimit des Clients oder Fehlversuchslimit beim Pairing erreicht."
+    },
+    {
+      "code": "daily_case_limit_reached",
+      "status": 429,
+      "retry": "unchanged",
+      "meaning": "Der Client hat die Höchstzahl neuer Fälle pro Tag erreicht."
+    },
+    {
+      "code": "internal_error",
+      "status": 500,
+      "retry": "unchanged",
+      "meaning": "Unerwarteter Serverfehler ohne weitere Details."
+    },
+    {
+      "code": "capacity_exhausted",
+      "status": 503,
+      "retry": "unchanged",
+      "meaning": "Globales Tageslimit oder Höchstzahl offener Fälle erreicht. Der Fall wurde nicht angenommen."
+    },
+    {
+      "code": "service_unavailable",
+      "status": 503,
+      "retry": "unchanged",
+      "meaning": "Der Fall kann nicht dauerhaft gespeichert werden oder der Dienst ist nicht bereit. Es wurde nichts angenommen."
+    }
+  ]
+}

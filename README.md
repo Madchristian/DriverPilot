@@ -106,6 +106,7 @@ src/DriverPilot/         WPF-Anwendung und Laufzeitcode
   UI/                   Hauptfenster, Ansichten und Icon-Loader
 tests/                  Regressionen und Testskripte
   InApp/                In die App eingebundene isolierte Testmodi
+contracts/              Sprachneutrale API-Verträge (Ferndiagnose v1, Entwurf)
 build/                  Build, Paketierung und CI-Signierung
 installer/              Windows-Setup und Inno-Setup-Definition
 assets/                 Branding und öffentliches Zertifikat

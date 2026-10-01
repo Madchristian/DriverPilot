@@ -1,0 +1,16 @@
+{
+  "protocol_version": "1.0",
+  "report_schema_versions": [
+    "1.0"
+  ],
+  "result_schema_version": "1.0",
+  "max_upload_bytes": 262144,
+  "max_scan_age_seconds": 900,
+  "max_future_skew_seconds": 300,
+  "case_retention_days": 7,
+  "privacy_notice": {
+    "version": "2026-10-01.1",
+    "text": "SYNTHETISCHER BEISPIELTEXT, kein gültiger Datenschutzhinweis.\nEmpfänger: Christian. Zweck: betreute Fehlerdiagnose. Löschung nach 7 Tagen."
+  },
+  "external_ai_offered": true
+}

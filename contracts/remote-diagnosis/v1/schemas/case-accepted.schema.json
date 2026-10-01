@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Antwort 202 von POST /cases",
+  "description": "Wird erst nach dauerhafter Speicherung von Fall und Arbeitsauftrag gesendet. Eine idempotente Wiederholung liefert denselben Fall mit seinem aktuellen Zustand.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["case_id", "status", "received_at", "expires_at", "report_sha256", "poll_after_seconds"],
+  "properties": {
+    "case_id": { "$ref": "common.schema.json#/$defs/uuid" },
+    "status": { "$ref": "common.schema.json#/$defs/case_status" },
+    "received_at": { "$ref": "common.schema.json#/$defs/timestamp" },
+    "expires_at": { "$ref": "common.schema.json#/$defs/timestamp" },
+    "report_sha256": { "$ref": "common.schema.json#/$defs/sha256" },
+    "poll_after_seconds": { "$ref": "common.schema.json#/$defs/poll_after_seconds" }
+  }
+}

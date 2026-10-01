@@ -1,0 +1,8 @@
+{
+  "error": {
+    "code": "not_found",
+    "message": "Dieser Fall ist nicht vorhanden."
+  },
+  "request_id": "3e2d1c0b-9a8f-4e7d-8c6b-5a4f3e2d1c0b",
+  "retry_after_seconds": null
+}

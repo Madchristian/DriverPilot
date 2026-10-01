@@ -1,0 +1,895 @@
+{
+  "schema_version": "1.0",
+  "app_version": "0.4.0",
+  "scan_id": "c1a9d3e4-52b7-4f60-8a1c-0d9e8f7a6b54",
+  "scanned_at": "2026-10-03T14:02:11.4821930Z",
+  "observation_start": "2026-10-02T14:02:11Z",
+  "observation_end": "2026-10-03T14:02:11Z",
+  "previous_case_id": null,
+  "symptom": {
+    "category": "wow_crash",
+    "description": "WoW stürzt nach etwa 20 Minuten im Schlachtzug ab, Fehler #132 (0x85100084). Der Bildschirm wird kurz schwarz, die Lüfter drehen hoch. Grafiktreiber 32.0.15.6094, davor lief 31.0.15.5222 unauffällig.",
+    "reproduction_steps": "1. WoW starten\n2. Schlachtzug betreten\n3. Nach 15 bis 25 Minuten friert das Bild ein",
+    "occurred_at": "2026-10-03T13:41:00Z"
+  },
+  "hardware": {
+    "windows_version": "Windows 11 Pro 24H2",
+    "windows_build": "26100.1742",
+    "architecture": "x64",
+    "cpu": "AMD Ryzen 7 7800X3D 8-Core Processor",
+    "ram_gb": 32,
+    "system_manufacturer": null,
+    "system_model": null,
+    "is_portable": false,
+    "board_manufacturer": "Micro-Star International Co., Ltd.",
+    "board_model": "MPG X670E CARBON WIFI (MS-7D70)",
+    "board_revision": "1.0",
+    "bios_version": "1.I0",
+    "bios_date": "2026-03-18"
+  },
+  "devices": [
+    {
+      "id": "dev-00",
+      "class": "network",
+      "model": {
+        "bus": "pci",
+        "vendor_id": "8086",
+        "product_id": "125C",
+        "subsystem_id": null
+      },
+      "driver_version": "2.1.4.3",
+      "driver_date": "2025-11-02",
+      "problem_code": 0
+    },
+    {
+      "id": "dev-01",
+      "class": "network",
+      "model": {
+        "bus": "pci",
+        "vendor_id": "8086",
+        "product_id": "125C",
+        "subsystem_id": null
+      },
+      "driver_version": "2.1.4.3",
+      "driver_date": "2025-11-02",
+      "problem_code": 0
+    },
+    {
+      "id": "dev-02",
+      "class": "network",
+      "model": {
+        "bus": "pci",
+        "vendor_id": "8086",
+        "product_id": "125C",
+        "subsystem_id": null
+      },
+      "driver_version": "2.1.4.3",
+      "driver_date": "2025-11-02",
+      "problem_code": 0
+    },
+    {
+      "id": "dev-03",
+      "class": "network",
+      "model": {
+        "bus": "pci",
+        "vendor_id": "8086",
+        "product_id": "125C",
+        "subsystem_id": null
+      },
+      "driver_version": "2.1.4.3",
+      "driver_date": "2025-11-02",
+      "problem_code": 0
+    },
+    {
+      "id": "dev-04",
+      "class": "network",
+      "model": {
+        "bus": "pci",
+        "vendor_id": "8086",
+        "product_id": "125C",
+        "subsystem_id": null
+      },
+      "driver_version": "2.1.4.3",
+      "driver_date": "2025-11-02",
+      "problem_code": 0
+    },
+    {
+      "id": "dev-05",
+      "class": "network",
+      "model": {
+        "bus": "pci",
+        "vendor_id": "8086",
+        "product_id": "125C",
+        "subsystem_id": null
+      },
+      "driver_version": "2.1.4.3",
+      "driver_date": "2025-11-02",
+      "problem_code": 0
+    },
+    {
+      "id": "dev-06",
+      "class": "network",
+      "model": {
+        "bus": "pci",
+        "vendor_id": "8086",
+        "product_id": "125C",
+        "subsystem_id": null
+      },
+      "driver_version": "2.1.4.3",
+      "driver_date": "2025-11-02",
+      "problem_code": 0
+    },
+    {
+      "id": "dev-07",
+      "class": "network",
+      "model": {
+        "bus": "pci",
+        "vendor_id": "8086",
+        "product_id": "125C",
+        "subsystem_id": null
+      },
+      "driver_version": "2.1.4.3",
+      "driver_date": "2025-11-02",
+      "problem_code": 0
+    },
+    {
+      "id": "dev-08",
+      "class": "network",
+      "model": {
+        "bus": "pci",
+        "vendor_id": "8086",
+        "product_id": "125C",
+        "subsystem_id": null
+      },
+      "driver_version": "2.1.4.3",
+      "driver_date": "2025-11-02",
+      "problem_code": 0
+    },
+    {
+      "id": "dev-09",
+      "class": "network",
+      "model": {
+        "bus": "pci",
+        "vendor_id": "8086",
+        "product_id": "125C",
+        "subsystem_id": null
+      },
+      "driver_version": "2.1.4.3",
+      "driver_date": "2025-11-02",
+      "problem_code": 0
+    },
+    {
+      "id": "dev-10",
+      "class": "network",
+      "model": {
+        "bus": "pci",
+        "vendor_id": "8086",
+        "product_id": "125C",
+        "subsystem_id": null
+      },
+      "driver_version": "2.1.4.3",
+      "driver_date": "2025-11-02",
+      "problem_code": 0
+    },
+    {
+      "id": "dev-11",
+      "class": "network",
+      "model": {
+        "bus": "pci",
+        "vendor_id": "8086",
+        "product_id": "125C",
+        "subsystem_id": null
+      },
+      "driver_version": "2.1.4.3",
+      "driver_date": "2025-11-02",
+      "problem_code": 0
+    },
+    {
+      "id": "dev-12",
+      "class": "network",
+      "model": {
+        "bus": "pci",
+        "vendor_id": "8086",
+        "product_id": "125C",
+        "subsystem_id": null
+      },
+      "driver_version": "2.1.4.3",
+      "driver_date": "2025-11-02",
+      "problem_code": 0
+    },
+    {
+      "id": "dev-13",
+      "class": "network",
+      "model": {
+        "bus": "pci",
+        "vendor_id": "8086",
+        "product_id": "125C",
+        "subsystem_id": null
+      },
+      "driver_version": "2.1.4.3",
+      "driver_date": "2025-11-02",
+      "problem_code": 0
+    },
+    {
+      "id": "dev-14",
+      "class": "network",
+      "model": {
+        "bus": "pci",
+        "vendor_id": "8086",
+        "product_id": "125C",
+        "subsystem_id": null
+      },
+      "driver_version": "2.1.4.3",
+      "driver_date": "2025-11-02",
+      "problem_code": 0
+    },
+    {
+      "id": "dev-15",
+      "class": "network",
+      "model": {
+        "bus": "pci",
+        "vendor_id": "8086",
+        "product_id": "125C",
+        "subsystem_id": null
+      },
+      "driver_version": "2.1.4.3",
+      "driver_date": "2025-11-02",
+      "problem_code": 0
+    },
+    {
+      "id": "dev-16",
+      "class": "network",
+      "model": {
+        "bus": "pci",
+        "vendor_id": "8086",
+        "product_id": "125C",
+        "subsystem_id": null
+      },
+      "driver_version": "2.1.4.3",
+      "driver_date": "2025-11-02",
+      "problem_code": 0
+    },
+    {
+      "id": "dev-17",
+      "class": "network",
+      "model": {
+        "bus": "pci",
+        "vendor_id": "8086",
+        "product_id": "125C",
+        "subsystem_id": null
+      },
+      "driver_version": "2.1.4.3",
+      "driver_date": "2025-11-02",
+      "problem_code": 0
+    },
+    {
+      "id": "dev-18",
+      "class": "network",
+      "model": {
+        "bus": "pci",
+        "vendor_id": "8086",
+        "product_id": "125C",
+        "subsystem_id": null
+      },
+      "driver_version": "2.1.4.3",
+      "driver_date": "2025-11-02",
+      "problem_code": 0
+    },
+    {
+      "id": "dev-19",
+      "class": "network",
+      "model": {
+        "bus": "pci",
+        "vendor_id": "8086",
+        "product_id": "125C",
+        "subsystem_id": null
+      },
+      "driver_version": "2.1.4.3",
+      "driver_date": "2025-11-02",
+      "problem_code": 0
+    },
+    {
+      "id": "dev-20",
+      "class": "network",
+      "model": {
+        "bus": "pci",
+        "vendor_id": "8086",
+        "product_id": "125C",
+        "subsystem_id": null
+      },
+      "driver_version": "2.1.4.3",
+      "driver_date": "2025-11-02",
+      "problem_code": 0
+    },
+    {
+      "id": "dev-21",
+      "class": "network",
+      "model": {
+        "bus": "pci",
+        "vendor_id": "8086",
+        "product_id": "125C",
+        "subsystem_id": null
+      },
+      "driver_version": "2.1.4.3",
+      "driver_date": "2025-11-02",
+      "problem_code": 0
+    },
+    {
+      "id": "dev-22",
+      "class": "network",
+      "model": {
+        "bus": "pci",
+        "vendor_id": "8086",
+        "product_id": "125C",
+        "subsystem_id": null
+      },
+      "driver_version": "2.1.4.3",
+      "driver_date": "2025-11-02",
+      "problem_code": 0
+    },
+    {
+      "id": "dev-23",
+      "class": "network",
+      "model": {
+        "bus": "pci",
+        "vendor_id": "8086",
+        "product_id": "125C",
+        "subsystem_id": null
+      },
+      "driver_version": "2.1.4.3",
+      "driver_date": "2025-11-02",
+      "problem_code": 0
+    },
+    {
+      "id": "dev-24",
+      "class": "network",
+      "model": {
+        "bus": "pci",
+        "vendor_id": "8086",
+        "product_id": "125C",
+        "subsystem_id": null
+      },
+      "driver_version": "2.1.4.3",
+      "driver_date": "2025-11-02",
+      "problem_code": 0
+    },
+    {
+      "id": "dev-25",
+      "class": "network",
+      "model": {
+        "bus": "pci",
+        "vendor_id": "8086",
+        "product_id": "125C",
+        "subsystem_id": null
+      },
+      "driver_version": "2.1.4.3",
+      "driver_date": "2025-11-02",
+      "problem_code": 0
+    },
+    {
+      "id": "dev-26",
+      "class": "network",
+      "model": {
+        "bus": "pci",
+        "vendor_id": "8086",
+        "product_id": "125C",
+        "subsystem_id": null
+      },
+      "driver_version": "2.1.4.3",
+      "driver_date": "2025-11-02",
+      "problem_code": 0
+    },
+    {
+      "id": "dev-27",
+      "class": "network",
+      "model": {
+        "bus": "pci",
+        "vendor_id": "8086",
+        "product_id": "125C",
+        "subsystem_id": null
+      },
+      "driver_version": "2.1.4.3",
+      "driver_date": "2025-11-02",
+      "problem_code": 0
+    },
+    {
+      "id": "dev-28",
+      "class": "network",
+      "model": {
+        "bus": "pci",
+        "vendor_id": "8086",
+        "product_id": "125C",
+        "subsystem_id": null
+      },
+      "driver_version": "2.1.4.3",
+      "driver_date": "2025-11-02",
+      "problem_code": 0
+    },
+    {
+      "id": "dev-29",
+      "class": "network",
+      "model": {
+        "bus": "pci",
+        "vendor_id": "8086",
+        "product_id": "125C",
+        "subsystem_id": null
+      },
+      "driver_version": "2.1.4.3",
+      "driver_date": "2025-11-02",
+      "problem_code": 0
+    },
+    {
+      "id": "dev-30",
+      "class": "network",
+      "model": {
+        "bus": "pci",
+        "vendor_id": "8086",
+        "product_id": "125C",
+        "subsystem_id": null
+      },
+      "driver_version": "2.1.4.3",
+      "driver_date": "2025-11-02",
+      "problem_code": 0
+    },
+    {
+      "id": "dev-31",
+      "class": "network",
+      "model": {
+        "bus": "pci",
+        "vendor_id": "8086",
+        "product_id": "125C",
+        "subsystem_id": null
+      },
+      "driver_version": "2.1.4.3",
+      "driver_date": "2025-11-02",
+      "problem_code": 0
+    },
+    {
+      "id": "dev-32",
+      "class": "network",
+      "model": {
+        "bus": "pci",
+        "vendor_id": "8086",
+        "product_id": "125C",
+        "subsystem_id": null
+      },
+      "driver_version": "2.1.4.3",
+      "driver_date": "2025-11-02",
+      "problem_code": 0
+    },
+    {
+      "id": "dev-33",
+      "class": "network",
+      "model": {
+        "bus": "pci",
+        "vendor_id": "8086",
+        "product_id": "125C",
+        "subsystem_id": null
+      },
+      "driver_version": "2.1.4.3",
+      "driver_date": "2025-11-02",
+      "problem_code": 0
+    },
+    {
+      "id": "dev-34",
+      "class": "network",
+      "model": {
+        "bus": "pci",
+        "vendor_id": "8086",
+        "product_id": "125C",
+        "subsystem_id": null
+      },
+      "driver_version": "2.1.4.3",
+      "driver_date": "2025-11-02",
+      "problem_code": 0
+    },
+    {
+      "id": "dev-35",
+      "class": "network",
+      "model": {
+        "bus": "pci",
+        "vendor_id": "8086",
+        "product_id": "125C",
+        "subsystem_id": null
+      },
+      "driver_version": "2.1.4.3",
+      "driver_date": "2025-11-02",
+      "problem_code": 0
+    },
+    {
+      "id": "dev-36",
+      "class": "network",
+      "model": {
+        "bus": "pci",
+        "vendor_id": "8086",
+        "product_id": "125C",
+        "subsystem_id": null
+      },
+      "driver_version": "2.1.4.3",
+      "driver_date": "2025-11-02",
+      "problem_code": 0
+    },
+    {
+      "id": "dev-37",
+      "class": "network",
+      "model": {
+        "bus": "pci",
+        "vendor_id": "8086",
+        "product_id": "125C",
+        "subsystem_id": null
+      },
+      "driver_version": "2.1.4.3",
+      "driver_date": "2025-11-02",
+      "problem_code": 0
+    },
+    {
+      "id": "dev-38",
+      "class": "network",
+      "model": {
+        "bus": "pci",
+        "vendor_id": "8086",
+        "product_id": "125C",
+        "subsystem_id": null
+      },
+      "driver_version": "2.1.4.3",
+      "driver_date": "2025-11-02",
+      "problem_code": 0
+    },
+    {
+      "id": "dev-39",
+      "class": "network",
+      "model": {
+        "bus": "pci",
+        "vendor_id": "8086",
+        "product_id": "125C",
+        "subsystem_id": null
+      },
+      "driver_version": "2.1.4.3",
+      "driver_date": "2025-11-02",
+      "problem_code": 0
+    },
+    {
+      "id": "dev-40",
+      "class": "network",
+      "model": {
+        "bus": "pci",
+        "vendor_id": "8086",
+        "product_id": "125C",
+        "subsystem_id": null
+      },
+      "driver_version": "2.1.4.3",
+      "driver_date": "2025-11-02",
+      "problem_code": 0
+    },
+    {
+      "id": "dev-41",
+      "class": "network",
+      "model": {
+        "bus": "pci",
+        "vendor_id": "8086",
+        "product_id": "125C",
+        "subsystem_id": null
+      },
+      "driver_version": "2.1.4.3",
+      "driver_date": "2025-11-02",
+      "problem_code": 0
+    },
+    {
+      "id": "dev-42",
+      "class": "network",
+      "model": {
+        "bus": "pci",
+        "vendor_id": "8086",
+        "product_id": "125C",
+        "subsystem_id": null
+      },
+      "driver_version": "2.1.4.3",
+      "driver_date": "2025-11-02",
+      "problem_code": 0
+    },
+    {
+      "id": "dev-43",
+      "class": "network",
+      "model": {
+        "bus": "pci",
+        "vendor_id": "8086",
+        "product_id": "125C",
+        "subsystem_id": null
+      },
+      "driver_version": "2.1.4.3",
+      "driver_date": "2025-11-02",
+      "problem_code": 0
+    },
+    {
+      "id": "dev-44",
+      "class": "network",
+      "model": {
+        "bus": "pci",
+        "vendor_id": "8086",
+        "product_id": "125C",
+        "subsystem_id": null
+      },
+      "driver_version": "2.1.4.3",
+      "driver_date": "2025-11-02",
+      "problem_code": 0
+    },
+    {
+      "id": "dev-45",
+      "class": "network",
+      "model": {
+        "bus": "pci",
+        "vendor_id": "8086",
+        "product_id": "125C",
+        "subsystem_id": null
+      },
+      "driver_version": "2.1.4.3",
+      "driver_date": "2025-11-02",
+      "problem_code": 0
+    },
+    {
+      "id": "dev-46",
+      "class": "network",
+      "model": {
+        "bus": "pci",
+        "vendor_id": "8086",
+        "product_id": "125C",
+        "subsystem_id": null
+      },
+      "driver_version": "2.1.4.3",
+      "driver_date": "2025-11-02",
+      "problem_code": 0
+    },
+    {
+      "id": "dev-47",
+      "class": "network",
+      "model": {
+        "bus": "pci",
+        "vendor_id": "8086",
+        "product_id": "125C",
+        "subsystem_id": null
+      },
+      "driver_version": "2.1.4.3",
+      "driver_date": "2025-11-02",
+      "problem_code": 0
+    },
+    {
+      "id": "dev-48",
+      "class": "network",
+      "model": {
+        "bus": "pci",
+        "vendor_id": "8086",
+        "product_id": "125C",
+        "subsystem_id": null
+      },
+      "driver_version": "2.1.4.3",
+      "driver_date": "2025-11-02",
+      "problem_code": 0
+    },
+    {
+      "id": "dev-49",
+      "class": "network",
+      "model": {
+        "bus": "pci",
+        "vendor_id": "8086",
+        "product_id": "125C",
+        "subsystem_id": null
+      },
+      "driver_version": "2.1.4.3",
+      "driver_date": "2025-11-02",
+      "problem_code": 0
+    },
+    {
+      "id": "dev-50",
+      "class": "network",
+      "model": {
+        "bus": "pci",
+        "vendor_id": "8086",
+        "product_id": "125C",
+        "subsystem_id": null
+      },
+      "driver_version": "2.1.4.3",
+      "driver_date": "2025-11-02",
+      "problem_code": 0
+    },
+    {
+      "id": "dev-51",
+      "class": "network",
+      "model": {
+        "bus": "pci",
+        "vendor_id": "8086",
+        "product_id": "125C",
+        "subsystem_id": null
+      },
+      "driver_version": "2.1.4.3",
+      "driver_date": "2025-11-02",
+      "problem_code": 0
+    },
+    {
+      "id": "dev-52",
+      "class": "network",
+      "model": {
+        "bus": "pci",
+        "vendor_id": "8086",
+        "product_id": "125C",
+        "subsystem_id": null
+      },
+      "driver_version": "2.1.4.3",
+      "driver_date": "2025-11-02",
+      "problem_code": 0
+    },
+    {
+      "id": "dev-53",
+      "class": "network",
+      "model": {
+        "bus": "pci",
+        "vendor_id": "8086",
+        "product_id": "125C",
+        "subsystem_id": null
+      },
+      "driver_version": "2.1.4.3",
+      "driver_date": "2025-11-02",
+      "problem_code": 0
+    },
+    {
+      "id": "dev-54",
+      "class": "network",
+      "model": {
+        "bus": "pci",
+        "vendor_id": "8086",
+        "product_id": "125C",
+        "subsystem_id": null
+      },
+      "driver_version": "2.1.4.3",
+      "driver_date": "2025-11-02",
+      "problem_code": 0
+    },
+    {
+      "id": "dev-55",
+      "class": "network",
+      "model": {
+        "bus": "pci",
+        "vendor_id": "8086",
+        "product_id": "125C",
+        "subsystem_id": null
+      },
+      "driver_version": "2.1.4.3",
+      "driver_date": "2025-11-02",
+      "problem_code": 0
+    },
+    {
+      "id": "dev-56",
+      "class": "network",
+      "model": {
+        "bus": "pci",
+        "vendor_id": "8086",
+        "product_id": "125C",
+        "subsystem_id": null
+      },
+      "driver_version": "2.1.4.3",
+      "driver_date": "2025-11-02",
+      "problem_code": 0
+    },
+    {
+      "id": "dev-57",
+      "class": "network",
+      "model": {
+        "bus": "pci",
+        "vendor_id": "8086",
+        "product_id": "125C",
+        "subsystem_id": null
+      },
+      "driver_version": "2.1.4.3",
+      "driver_date": "2025-11-02",
+      "problem_code": 0
+    },
+    {
+      "id": "dev-58",
+      "class": "network",
+      "model": {
+        "bus": "pci",
+        "vendor_id": "8086",
+        "product_id": "125C",
+        "subsystem_id": null
+      },
+      "driver_version": "2.1.4.3",
+      "driver_date": "2025-11-02",
+      "problem_code": 0
+    },
+    {
+      "id": "dev-59",
+      "class": "network",
+      "model": {
+        "bus": "pci",
+        "vendor_id": "8086",
+        "product_id": "125C",
+        "subsystem_id": null
+      },
+      "driver_version": "2.1.4.3",
+      "driver_date": "2025-11-02",
+      "problem_code": 0
+    },
+    {
+      "id": "dev-60",
+      "class": "network",
+      "model": {
+        "bus": "pci",
+        "vendor_id": "8086",
+        "product_id": "125C",
+        "subsystem_id": null
+      },
+      "driver_version": "2.1.4.3",
+      "driver_date": "2025-11-02",
+      "problem_code": 0
+    },
+    {
+      "id": "dev-61",
+      "class": "network",
+      "model": {
+        "bus": "pci",
+        "vendor_id": "8086",
+        "product_id": "125C",
+        "subsystem_id": null
+      },
+      "driver_version": "2.1.4.3",
+      "driver_date": "2025-11-02",
+      "problem_code": 0
+    },
+    {
+      "id": "dev-62",
+      "class": "network",
+      "model": {
+        "bus": "pci",
+        "vendor_id": "8086",
+        "product_id": "125C",
+        "subsystem_id": null
+      },
+      "driver_version": "2.1.4.3",
+      "driver_date": "2025-11-02",
+      "problem_code": 0
+    },
+    {
+      "id": "dev-63",
+      "class": "network",
+      "model": {
+        "bus": "pci",
+        "vendor_id": "8086",
+        "product_id": "125C",
+        "subsystem_id": null
+      },
+      "driver_version": "2.1.4.3",
+      "driver_date": "2025-11-02",
+      "problem_code": 0
+    },
+    {
+      "id": "dev-64",
+      "class": "network",
+      "model": {
+        "bus": "pci",
+        "vendor_id": "8086",
+        "product_id": "125C",
+        "subsystem_id": null
+      },
+      "driver_version": "2.1.4.3",
+      "driver_date": "2025-11-02",
+      "problem_code": 0
+    }
+  ],
+  "findings": [],
+  "collection": {
+    "hardware": "complete",
+    "devices": "complete",
+    "system_events": "complete",
+    "wlan_events": "unavailable"
+  },
+  "wow": {
+    "game_build": "11.2.5.63506",
+    "problem_scope": "wow_only",
+    "addon_test": "no"
+  },
+  "consent": {
+    "privacy_notice_version": "2026-10-01.1",
+    "accepted_at": "2026-10-03T14:06:30Z",
+    "upload_approved": true,
+    "external_ai_allowed": true
+  }
+}

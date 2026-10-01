@@ -1,0 +1,433 @@
+openapi: 3.1.0
+info:
+  title: DriverPilot Ferndiagnose API
+  version: 1.0.0
+  summary: Client-API für betreute Ferndiagnose (Pilot).
+  description: |
+    Verbindlicher Vertrag zwischen DriverPilot (Windows-Client) und dem Ferndiagnose-Server.
+    Maßgeblich sind diese Datei, die JSON-Schemas unter `schemas/`, `errors.json`, `states.json`,
+    `rules.json` und die Fixtures; die normativen Regeln in Prosa stehen in `README.md`.
+
+    Die Adminansicht ist serverintern und nicht Teil dieses Vertrags.
+    Alle Bodies sind JSON in UTF-8 ohne BOM. Antworten sind inert anzuzeigende Daten, nie Code.
+servers:
+  - url: https://{host}/api/v1
+    description: Der Hostname wird vor dem Livebetrieb festgelegt.
+    variables:
+      host:
+        default: ferndiagnose.invalid
+tags:
+  - name: Protokoll
+  - name: Pairing
+  - name: Fälle
+paths:
+  /capabilities:
+    get:
+      tags: [Protokoll]
+      operationId: getCapabilities
+      summary: Öffentliche Protokoll- und Schemainformationen.
+      security: []
+      responses:
+        '200':
+          description: Aktuelle Fähigkeiten des Servers.
+          content:
+            application/json:
+              schema:
+                $ref: schemas/capabilities.schema.json
+        '429':
+          description: Anfragelimit erreicht.
+          x-error-codes: [rate_limited]
+          headers:
+            Retry-After:
+              $ref: '#/components/headers/RetryAfter'
+          content:
+            application/json:
+              schema:
+                $ref: schemas/error.schema.json
+        '500':
+          $ref: '#/components/responses/InternalError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+  /pairings/redeem:
+    post:
+      tags: [Pairing]
+      operationId: redeemPairing
+      summary: Einmaleinladung gegen einen Clientzugang einlösen.
+      description: |
+        Die Einladung wird atomar verbraucht. Unbekannte, abgelaufene und bereits eingelöste
+        Einladungen sind nicht unterscheidbar. Das Token wird nur in dieser Antwort ausgegeben.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: schemas/pairing-redeem-request.schema.json
+      responses:
+        '201':
+          description: Clientzugang erzeugt.
+          headers:
+            Cache-Control:
+              $ref: '#/components/headers/CacheControlNoStore'
+          content:
+            application/json:
+              schema:
+                $ref: schemas/pairing-redeem-response.schema.json
+        '400':
+          description: Body ist kein gültiges JSON.
+          x-error-codes: [invalid_json]
+          content:
+            application/json:
+              schema:
+                $ref: schemas/error.schema.json
+        '401':
+          description: Einladung nicht einlösbar.
+          x-error-codes: [invitation_invalid]
+          content:
+            application/json:
+              schema:
+                $ref: schemas/error.schema.json
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
+        '415':
+          $ref: '#/components/responses/UnsupportedMedia'
+        '422':
+          description: Body verletzt das Schema.
+          x-error-codes: [schema_violation]
+          content:
+            application/json:
+              schema:
+                $ref: schemas/error.schema.json
+        '429':
+          description: Zu viele Fehlversuche von dieser Adresse.
+          x-error-codes: [rate_limited]
+          headers:
+            Retry-After:
+              $ref: '#/components/headers/RetryAfter'
+          content:
+            application/json:
+              schema:
+                $ref: schemas/error.schema.json
+        '500':
+          $ref: '#/components/responses/InternalError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+  /cases:
+    post:
+      tags: [Fälle]
+      operationId: createCase
+      summary: Diagnosebericht nach Vorschau und Zustimmung einreichen.
+      description: |
+        Der Server antwortet erst nach der dauerhaften Transaktion für Fall und Arbeitsauftrag
+        und wartet nie auf ein Modell. `report_sha256` ist der SHA-256 über die exakt
+        empfangenen Body-Bytes. Gleicher Idempotency-Key mit denselben Bytes liefert denselben
+        Fall ohne neue Analyse.
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: schemas/case-create-request.schema.json
+      responses:
+        '202':
+          description: Fall dauerhaft angenommen oder idempotent wiedererkannt.
+          headers:
+            Cache-Control:
+              $ref: '#/components/headers/CacheControlNoStore'
+          content:
+            application/json:
+              schema:
+                $ref: schemas/case-accepted.schema.json
+        '400':
+          description: Ungültiges JSON oder fehlender Idempotency-Key.
+          x-error-codes: [invalid_json, idempotency_key_required]
+          content:
+            application/json:
+              schema:
+                $ref: schemas/error.schema.json
+        '401':
+          $ref: '#/components/responses/TokenInvalid'
+        '409':
+          description: Idempotenzkonflikt.
+          x-error-codes: [idempotency_key_conflict, request_retired]
+          content:
+            application/json:
+              schema:
+                $ref: schemas/error.schema.json
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
+        '415':
+          $ref: '#/components/responses/UnsupportedMedia'
+        '422':
+          description: Bericht, Zustimmung oder Scan unzulässig.
+          x-error-codes:
+            - unsupported_schema_version
+            - schema_violation
+            - consent_required
+            - privacy_notice_outdated
+            - scan_too_old
+            - clock_skew
+            - time_range_invalid
+            - reference_invalid
+            - text_rejected
+            - previous_case_not_found
+          content:
+            application/json:
+              schema:
+                $ref: schemas/error.schema.json
+        '429':
+          description: Anfrage- oder Tageslimit des Clients erreicht.
+          x-error-codes: [rate_limited, daily_case_limit_reached]
+          headers:
+            Retry-After:
+              $ref: '#/components/headers/RetryAfter'
+          content:
+            application/json:
+              schema:
+                $ref: schemas/error.schema.json
+        '500':
+          $ref: '#/components/responses/InternalError'
+        '503':
+          description: Fall nicht annehmbar; es wurde nichts gespeichert.
+          x-error-codes: [capacity_exhausted, service_unavailable]
+          headers:
+            Retry-After:
+              $ref: '#/components/headers/RetryAfter'
+          content:
+            application/json:
+              schema:
+                $ref: schemas/error.schema.json
+  /cases/{case_id}:
+    parameters:
+      - $ref: '#/components/parameters/CaseId'
+    get:
+      tags: [Fälle]
+      operationId: getCase
+      summary: Eigenen Fall mit Zustand und freigegebenem Ergebnis abrufen.
+      parameters:
+        - name: If-None-Match
+          in: header
+          required: false
+          description: Zuletzt erhaltener ETag dieses Falls.
+          schema:
+            type: string
+            maxLength: 130
+      responses:
+        '200':
+          description: Aktueller Stand des eigenen Falls.
+          headers:
+            ETag:
+              $ref: '#/components/headers/ETag'
+            Cache-Control:
+              $ref: '#/components/headers/CacheControlNoStore'
+          content:
+            application/json:
+              schema:
+                $ref: schemas/case.schema.json
+        '304':
+          description: Unverändert seit dem genannten ETag; ohne Body.
+          headers:
+            ETag:
+              $ref: '#/components/headers/ETag'
+        '401':
+          $ref: '#/components/responses/TokenInvalid'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/InternalError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+    delete:
+      tags: [Fälle]
+      operationId: deleteCase
+      summary: Eigenen Fall samt Bericht, Entwürfen, Ergebnissen und Rückmeldungen löschen.
+      description: |
+        Entwertet laufende Arbeit sofort. Antwortet für jede syntaktisch gültige, für diesen
+        Client nicht sichtbare ID ebenfalls mit 204, damit keine Existenz erkennbar wird.
+      responses:
+        '204':
+          description: Fall ist für diesen Client nicht (mehr) vorhanden.
+        '401':
+          $ref: '#/components/responses/TokenInvalid'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/InternalError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+  /cases/{case_id}/feedback:
+    parameters:
+      - $ref: '#/components/parameters/CaseId'
+    post:
+      tags: [Fälle]
+      operationId: createFeedback
+      summary: Rückmeldung zur freigegebenen Ergebnisrevision senden.
+      description: Löst keine neue KI-Anfrage aus. Idempotenz wie bei `POST /cases`.
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: schemas/feedback-request.schema.json
+      responses:
+        '201':
+          description: Rückmeldung gespeichert oder idempotent wiedererkannt.
+          headers:
+            Cache-Control:
+              $ref: '#/components/headers/CacheControlNoStore'
+          content:
+            application/json:
+              schema:
+                $ref: schemas/feedback-response.schema.json
+        '400':
+          description: Ungültiges JSON oder fehlender Idempotency-Key.
+          x-error-codes: [invalid_json, idempotency_key_required]
+          content:
+            application/json:
+              schema:
+                $ref: schemas/error.schema.json
+        '401':
+          $ref: '#/components/responses/TokenInvalid'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: Idempotenz- oder Zustandskonflikt.
+          x-error-codes:
+            - idempotency_key_conflict
+            - request_retired
+            - result_revision_conflict
+            - feedback_limit_reached
+          content:
+            application/json:
+              schema:
+                $ref: schemas/error.schema.json
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
+        '415':
+          $ref: '#/components/responses/UnsupportedMedia'
+        '422':
+          description: Rückmeldung verletzt Schema oder Textregeln.
+          x-error-codes: [schema_violation, text_rejected]
+          content:
+            application/json:
+              schema:
+                $ref: schemas/error.schema.json
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/InternalError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+security:
+  - clientToken: []
+components:
+  securitySchemes:
+    clientToken:
+      type: http
+      scheme: bearer
+      description: |
+        Opakes Token aus `POST /pairings/redeem`, ausschließlich im Authorization-Header.
+        Der Client sendet es nie an einen anderen Host und folgt keinen Redirects.
+  parameters:
+    CaseId:
+      name: case_id
+      in: path
+      required: true
+      description: Fall-ID. Eine ID, die keine UUID ist, wird wie ein nicht sichtbarer Fall behandelt (404).
+      schema:
+        type: string
+        maxLength: 64
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      description: Vom Client erzeugte UUID in Kleinschreibung; gilt je Clientzugang und Endpunkt.
+      schema:
+        $ref: schemas/common.schema.json#/$defs/uuid
+  headers:
+    CacheControlNoStore:
+      description: Immer `no-store`.
+      schema:
+        type: string
+        const: no-store
+    ETag:
+      description: Starker, opaker ETag des eigenen Fallstands; nie aus fremden Inhalten abgeleitet.
+      schema:
+        type: string
+        maxLength: 130
+    RetryAfter:
+      description: Wartezeit in Sekunden; identisch mit `retry_after_seconds` im Body.
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 86400
+  responses:
+    TokenInvalid:
+      description: Token fehlt, ist unbekannt, abgelaufen oder widerrufen.
+      x-error-codes: [token_invalid]
+      headers:
+        WWW-Authenticate:
+          description: Immer `Bearer`.
+          schema:
+            type: string
+            const: Bearer
+      content:
+        application/json:
+          schema:
+            $ref: schemas/error.schema.json
+    NotFound:
+      description: Fall für diesen Client nicht sichtbar; ohne ETag und ohne Inhalt des Falls.
+      x-error-codes: [not_found]
+      content:
+        application/json:
+          schema:
+            $ref: schemas/error.schema.json
+    PayloadTooLarge:
+      description: Body überschreitet das Uploadlimit.
+      x-error-codes: [payload_too_large]
+      content:
+        application/json:
+          schema:
+            $ref: schemas/error.schema.json
+    UnsupportedMedia:
+      description: Falscher Content-Type oder gesetztes Content-Encoding.
+      x-error-codes: [unsupported_media_type, unsupported_content_encoding]
+      content:
+        application/json:
+          schema:
+            $ref: schemas/error.schema.json
+    RateLimited:
+      description: Anfragelimit des Clients erreicht.
+      x-error-codes: [rate_limited]
+      headers:
+        Retry-After:
+          $ref: '#/components/headers/RetryAfter'
+      content:
+        application/json:
+          schema:
+            $ref: schemas/error.schema.json
+    InternalError:
+      description: Unerwarteter Serverfehler ohne Details.
+      x-error-codes: [internal_error]
+      content:
+        application/json:
+          schema:
+            $ref: schemas/error.schema.json
+    ServiceUnavailable:
+      description: Dienst nicht bereit.
+      x-error-codes: [service_unavailable]
+      headers:
+        Retry-After:
+          $ref: '#/components/headers/RetryAfter'
+      content:
+        application/json:
+          schema:
+            $ref: schemas/error.schema.json

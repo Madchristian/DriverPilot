@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Request von POST /pairings/redeem",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["invitation_code"],
+  "properties": {
+    "invitation_code": {
+      "description": "Einmaleinladung, base64url ohne Padding mit mindestens 128 Bit Zufall. Nur im Body, nie in URL oder Log.",
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_-]{22,128}$"
+    }
+  }
+}

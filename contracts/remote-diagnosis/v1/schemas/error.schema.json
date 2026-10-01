@@ -1,0 +1,64 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Einheitliches Fehlerobjekt",
+  "description": "Antwortkörper jeder Fehlerantwort. Enthält nie Stacktraces, Eingabewerte, Rohdaten oder Providerantworten. Die Codes und ihre HTTP-Status stehen in errors.json.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["error", "request_id", "retry_after_seconds"],
+  "properties": {
+    "error": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "message"],
+      "properties": {
+        "code": {
+          "enum": [
+            "invalid_json",
+            "idempotency_key_required",
+            "token_invalid",
+            "invitation_invalid",
+            "not_found",
+            "idempotency_key_conflict",
+            "request_retired",
+            "result_revision_conflict",
+            "feedback_limit_reached",
+            "payload_too_large",
+            "unsupported_media_type",
+            "unsupported_content_encoding",
+            "unsupported_schema_version",
+            "schema_violation",
+            "consent_required",
+            "privacy_notice_outdated",
+            "scan_too_old",
+            "clock_skew",
+            "time_range_invalid",
+            "reference_invalid",
+            "text_rejected",
+            "previous_case_not_found",
+            "rate_limited",
+            "daily_case_limit_reached",
+            "internal_error",
+            "capacity_exhausted",
+            "service_unavailable"
+          ]
+        },
+        "message": {
+          "description": "Feste, verständliche Meldung je Code; gibt keine Eingaben wieder.",
+          "$ref": "common.schema.json#/$defs/free_text",
+          "minLength": 1,
+          "maxLength": 300
+        }
+      }
+    },
+    "request_id": {
+      "description": "Zufällige Kennung dieser Anfrage für die Fehlersuche; nicht aus Inhalten abgeleitet.",
+      "$ref": "common.schema.json#/$defs/uuid"
+    },
+    "retry_after_seconds": {
+      "description": "Gesetzt bei 429 und 503 und identisch mit dem Header Retry-After; sonst null.",
+      "type": ["integer", "null"],
+      "minimum": 1,
+      "maximum": 86400
+    }
+  }
+}

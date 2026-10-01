@@ -1,0 +1,245 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Diagnosebericht: Request von POST /cases",
+  "description": "Explizite Transportprojektion. Jedes Feld ist Pflicht; ein unbekannter Wert ist null und wird nie durch einen Ersatzwert erfunden. Unbekannte Felder werden abgelehnt.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "app_version",
+    "scan_id",
+    "scanned_at",
+    "observation_start",
+    "observation_end",
+    "previous_case_id",
+    "symptom",
+    "hardware",
+    "devices",
+    "findings",
+    "collection",
+    "wow",
+    "consent"
+  ],
+  "properties": {
+    "schema_version": { "enum": ["1.0"] },
+    "app_version": { "type": "string", "pattern": "^[0-9]{1,5}(\\.[0-9]{1,5}){2,3}$" },
+    "scan_id": {
+      "description": "Vom Client je Scan erzeugte UUID.",
+      "$ref": "common.schema.json#/$defs/uuid"
+    },
+    "scanned_at": { "$ref": "common.schema.json#/$defs/timestamp" },
+    "observation_start": { "$ref": "common.schema.json#/$defs/timestamp" },
+    "observation_end": { "$ref": "common.schema.json#/$defs/timestamp" },
+    "previous_case_id": {
+      "description": "Optionaler Verweis auf einen eigenen früheren Fall.",
+      "anyOf": [{ "$ref": "common.schema.json#/$defs/uuid" }, { "type": "null" }]
+    },
+    "symptom": { "$ref": "#/$defs/symptom" },
+    "hardware": { "$ref": "#/$defs/hardware" },
+    "devices": {
+      "type": "array",
+      "maxItems": 64,
+      "items": { "$ref": "#/$defs/device" }
+    },
+    "findings": {
+      "type": "array",
+      "maxItems": 200,
+      "items": { "$ref": "#/$defs/finding" }
+    },
+    "collection": { "$ref": "#/$defs/collection" },
+    "wow": {
+      "anyOf": [{ "$ref": "#/$defs/wow" }, { "type": "null" }]
+    },
+    "consent": { "$ref": "#/$defs/consent" }
+  },
+  "$defs": {
+    "nullable_technical_text": {
+      "anyOf": [{ "$ref": "common.schema.json#/$defs/technical_text" }, { "type": "null" }]
+    },
+    "symptom": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["category", "description", "reproduction_steps", "occurred_at"],
+      "properties": {
+        "category": {
+          "enum": ["wow_crash", "pc_freeze", "graphics_reset", "performance", "network", "addon_error", "other"]
+        },
+        "description": {
+          "$ref": "common.schema.json#/$defs/free_text",
+          "minLength": 1,
+          "maxLength": 2000
+        },
+        "reproduction_steps": {
+          "anyOf": [
+            { "$ref": "common.schema.json#/$defs/free_text", "minLength": 1, "maxLength": 2000 },
+            { "type": "null" }
+          ]
+        },
+        "occurred_at": {
+          "anyOf": [{ "$ref": "common.schema.json#/$defs/timestamp" }, { "type": "null" }]
+        }
+      }
+    },
+    "hardware": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "windows_version",
+        "windows_build",
+        "architecture",
+        "cpu",
+        "ram_gb",
+        "system_manufacturer",
+        "system_model",
+        "is_portable",
+        "board_manufacturer",
+        "board_model",
+        "board_revision",
+        "bios_version",
+        "bios_date"
+      ],
+      "properties": {
+        "windows_version": { "$ref": "#/$defs/nullable_technical_text" },
+        "windows_build": {
+          "anyOf": [{ "type": "string", "pattern": "^[0-9]{1,6}(\\.[0-9]{1,6})?$" }, { "type": "null" }]
+        },
+        "architecture": { "enum": ["x64", "arm64", "x86", null] },
+        "cpu": { "$ref": "#/$defs/nullable_technical_text" },
+        "ram_gb": { "type": ["integer", "null"], "minimum": 1, "maximum": 16384 },
+        "system_manufacturer": { "$ref": "#/$defs/nullable_technical_text" },
+        "system_model": { "$ref": "#/$defs/nullable_technical_text" },
+        "is_portable": { "type": ["boolean", "null"] },
+        "board_manufacturer": { "$ref": "#/$defs/nullable_technical_text" },
+        "board_model": { "$ref": "#/$defs/nullable_technical_text" },
+        "board_revision": { "$ref": "#/$defs/nullable_technical_text" },
+        "bios_version": { "$ref": "#/$defs/nullable_technical_text" },
+        "bios_date": {
+          "anyOf": [{ "$ref": "common.schema.json#/$defs/date" }, { "type": "null" }]
+        }
+      }
+    },
+    "device_model": {
+      "description": "Bereinigte Modellkennung. Vollständige Instanz-IDs und Seriennummern haben hier keinen Platz.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["bus", "vendor_id", "product_id", "subsystem_id"],
+      "properties": {
+        "bus": { "enum": ["pci", "usb"] },
+        "vendor_id": { "type": "string", "pattern": "^[0-9A-F]{4}$" },
+        "product_id": { "type": "string", "pattern": "^[0-9A-F]{4}$" },
+        "subsystem_id": {
+          "description": "Nur bei PCI; sonst null.",
+          "anyOf": [{ "type": "string", "pattern": "^[0-9A-F]{8}$" }, { "type": "null" }]
+        }
+      }
+    },
+    "device": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "class", "model", "driver_version", "driver_date", "problem_code"],
+      "properties": {
+        "id": { "$ref": "common.schema.json#/$defs/local_id" },
+        "class": {
+          "enum": ["display", "network", "audio", "storage_controller", "scsi_adapter", "usb", "system", "other"]
+        },
+        "model": {
+          "anyOf": [{ "$ref": "#/$defs/device_model" }, { "type": "null" }]
+        },
+        "driver_version": {
+          "anyOf": [
+            { "type": "string", "maxLength": 40, "pattern": "^[0-9]+(\\.[0-9]+){0,7}$" },
+            { "type": "null" }
+          ]
+        },
+        "driver_date": {
+          "anyOf": [{ "$ref": "common.schema.json#/$defs/date" }, { "type": "null" }]
+        },
+        "problem_code": {
+          "description": "Windows-ConfigManager-Fehlercode: 0 = bereit, 22 = deaktiviert, null = nicht ermittelbar.",
+          "type": ["integer", "null"],
+          "minimum": 0,
+          "maximum": 255
+        }
+      }
+    },
+    "finding": {
+      "description": "Gruppe gleichartiger Ereignisse. Keine rohen Ereignisnachrichten, Dateipfade oder Dumps.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "source", "event_id", "count", "first_seen", "last_seen", "severity", "device_ref"],
+      "properties": {
+        "id": { "$ref": "common.schema.json#/$defs/local_id" },
+        "source": {
+          "description": "Exakter Name der Windows-Ereignisquelle.",
+          "enum": [
+            "Display",
+            "nvlddmkm",
+            "amdwddmg",
+            "Microsoft-Windows-Kernel-PnP",
+            "Microsoft-Windows-DriverFrameworks-UserMode",
+            "Microsoft-Windows-WHEA-Logger",
+            "disk",
+            "stornvme",
+            "storahci",
+            "Microsoft-Windows-WLAN-AutoConfig"
+          ]
+        },
+        "event_id": { "type": "integer", "minimum": 0, "maximum": 65535 },
+        "count": { "type": "integer", "minimum": 1, "maximum": 100000 },
+        "first_seen": { "$ref": "common.schema.json#/$defs/timestamp" },
+        "last_seen": { "$ref": "common.schema.json#/$defs/timestamp" },
+        "severity": { "enum": ["critical", "error", "warning", "info"] },
+        "device_ref": {
+          "description": "id eines Eintrags in devices oder null, wenn keine Zuordnung vorliegt.",
+          "anyOf": [{ "$ref": "common.schema.json#/$defs/local_id" }, { "type": "null" }]
+        }
+      }
+    },
+    "collection_status": {
+      "description": "complete: vollständig erfasst. truncated: wegen Limit gekürzt. failed: Erfassung fehlgeschlagen. unavailable: Quelle auf diesem PC nicht vorhanden oder nicht aktiv. Alles außer complete bedeutet nie „gesund“.",
+      "enum": ["complete", "truncated", "failed", "unavailable"]
+    },
+    "collection": {
+      "description": "Technischer Erfassungsstatus je Bereich, damit Lücken nicht als unauffälliger Befund gelesen werden.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["hardware", "devices", "system_events", "wlan_events"],
+      "properties": {
+        "hardware": { "$ref": "#/$defs/collection_status" },
+        "devices": { "$ref": "#/$defs/collection_status" },
+        "system_events": { "$ref": "#/$defs/collection_status" },
+        "wlan_events": { "$ref": "#/$defs/collection_status" }
+      }
+    },
+    "wow": {
+      "description": "Minimaler, vom Nutzer genannter Spielkontext ohne Account-, Charakter- oder Realm-Bezug.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["game_build", "problem_scope", "addon_test"],
+      "properties": {
+        "game_build": {
+          "anyOf": [
+            { "type": "string", "pattern": "^[0-9]{1,2}\\.[0-9]{1,2}\\.[0-9]{1,2}(\\.[0-9]{1,6})?$" },
+            { "type": "null" }
+          ]
+        },
+        "problem_scope": { "enum": ["wow_only", "also_elsewhere", "unknown"] },
+        "addon_test": { "enum": ["yes", "no", "unknown"] }
+      }
+    },
+    "consent": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["privacy_notice_version", "accepted_at", "upload_approved", "external_ai_allowed"],
+      "properties": {
+        "privacy_notice_version": { "$ref": "common.schema.json#/$defs/version_label" },
+        "accepted_at": { "$ref": "common.schema.json#/$defs/timestamp" },
+        "upload_approved": { "const": true },
+        "external_ai_allowed": {
+          "description": "false: ausschließlich manuelle Bearbeitung, kein Datenversand an einen Modellanbieter.",
+          "type": "boolean"
+        }
+      }
+    }
+  }
+}

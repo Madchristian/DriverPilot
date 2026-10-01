@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Antwort 200 von GET /cases/{case_id}",
+  "description": "Sicht des Eigentümers auf seinen Fall. Enthält nie einen internen KI-Entwurf.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "case_id",
+    "status",
+    "status_reason",
+    "scan_id",
+    "report_sha256",
+    "received_at",
+    "expires_at",
+    "poll_after_seconds",
+    "result"
+  ],
+  "properties": {
+    "case_id": { "$ref": "common.schema.json#/$defs/uuid" },
+    "status": { "$ref": "common.schema.json#/$defs/case_status" },
+    "status_reason": {
+      "description": "Sicherer Fehlercode, nur im Zustand analysis_failed gesetzt; sonst null. Enthält keine Providerantwort.",
+      "enum": ["provider_unavailable", "budget_exhausted", "output_rejected", "outcome_unknown", null]
+    },
+    "scan_id": { "$ref": "common.schema.json#/$defs/uuid" },
+    "report_sha256": { "$ref": "common.schema.json#/$defs/sha256" },
+    "received_at": { "$ref": "common.schema.json#/$defs/timestamp" },
+    "expires_at": { "$ref": "common.schema.json#/$defs/timestamp" },
+    "poll_after_seconds": { "$ref": "common.schema.json#/$defs/poll_after_seconds" },
+    "result": {
+      "description": "Zuletzt freigegebene Ergebnisrevision oder null.",
+      "anyOf": [{ "$ref": "result.schema.json" }, { "type": "null" }]
+    }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "status": { "const": "released" } } },
+      "then": { "properties": { "result": { "type": "object" } } },
+      "else": { "properties": { "result": { "type": "null" } } }
+    },
+    {
+      "if": { "properties": { "status": { "const": "analysis_failed" } } },
+      "then": { "properties": { "status_reason": { "type": "string" } } },
+      "else": { "properties": { "status_reason": { "type": "null" } } }
+    },
+    {
+      "if": { "properties": { "status": { "enum": ["released", "analysis_failed"] } } },
+      "then": { "properties": { "poll_after_seconds": { "type": "null" } } },
+      "else": { "properties": { "poll_after_seconds": { "type": "integer" } } }
+    }
+  ]
+}

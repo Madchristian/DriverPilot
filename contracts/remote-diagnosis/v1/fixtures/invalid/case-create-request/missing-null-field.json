@@ -1,0 +1,115 @@
+{
+  "schema_version": "1.0",
+  "app_version": "0.4.0",
+  "scan_id": "c1a9d3e4-52b7-4f60-8a1c-0d9e8f7a6b54",
+  "scanned_at": "2026-10-03T14:02:11.4821930Z",
+  "observation_start": "2026-10-02T14:02:11Z",
+  "observation_end": "2026-10-03T14:02:11Z",
+  "previous_case_id": null,
+  "symptom": {
+    "category": "wow_crash",
+    "description": "WoW stürzt nach etwa 20 Minuten im Schlachtzug ab, Fehler #132 (0x85100084). Der Bildschirm wird kurz schwarz, die Lüfter drehen hoch. Grafiktreiber 32.0.15.6094, davor lief 31.0.15.5222 unauffällig.",
+    "reproduction_steps": "1. WoW starten\n2. Schlachtzug betreten\n3. Nach 15 bis 25 Minuten friert das Bild ein",
+    "occurred_at": "2026-10-03T13:41:00Z"
+  },
+  "hardware": {
+    "windows_version": "Windows 11 Pro 24H2",
+    "windows_build": "26100.1742",
+    "architecture": "x64",
+    "cpu": "AMD Ryzen 7 7800X3D 8-Core Processor",
+    "ram_gb": 32,
+    "system_manufacturer": null,
+    "system_model": null,
+    "is_portable": false,
+    "board_manufacturer": "Micro-Star International Co., Ltd.",
+    "board_model": "MPG X670E CARBON WIFI (MS-7D70)",
+    "board_revision": "1.0",
+    "bios_version": "1.I0",
+    "bios_date": "2026-03-18"
+  },
+  "devices": [
+    {
+      "id": "dev-01",
+      "class": "display",
+      "model": {
+        "bus": "pci",
+        "vendor_id": "10DE",
+        "product_id": "2684",
+        "subsystem_id": "88891043"
+      },
+      "driver_version": "32.0.15.6094",
+      "driver_date": "2026-08-14",
+      "problem_code": 0
+    },
+    {
+      "id": "dev-02",
+      "class": "network",
+      "model": {
+        "bus": "pci",
+        "vendor_id": "8086",
+        "product_id": "125C",
+        "subsystem_id": null
+      },
+      "driver_version": "2.1.4.3",
+      "driver_date": "2025-11-02",
+      "problem_code": 0
+    },
+    {
+      "id": "dev-03",
+      "class": "usb",
+      "model": {
+        "bus": "usb",
+        "vendor_id": "0E8D",
+        "product_id": "0616",
+        "subsystem_id": null
+      },
+      "driver_version": null,
+      "driver_date": null,
+      "problem_code": 22
+    }
+  ],
+  "findings": [
+    {
+      "id": "f-001",
+      "source": "nvlddmkm",
+      "event_id": 153,
+      "count": 4,
+      "first_seen": "2026-10-03T13:38:52Z",
+      "last_seen": "2026-10-03T13:41:07Z",
+      "severity": "error",
+      "device_ref": "dev-01"
+    },
+    {
+      "id": "f-002",
+      "source": "Display",
+      "event_id": 4101,
+      "count": 2,
+      "first_seen": "2026-10-03T13:39:10Z",
+      "last_seen": "2026-10-03T13:41:05Z",
+      "severity": "warning",
+      "device_ref": "dev-01"
+    },
+    {
+      "id": "f-003",
+      "source": "Microsoft-Windows-WHEA-Logger",
+      "event_id": 17,
+      "count": 12,
+      "first_seen": "2026-10-02T19:12:44Z",
+      "last_seen": "2026-10-03T13:40:58Z",
+      "severity": "warning",
+      "device_ref": null
+    }
+  ],
+  "collection": {
+    "hardware": "complete",
+    "devices": "complete",
+    "system_events": "complete",
+    "wlan_events": "unavailable"
+  },
+  "consent": {
+    "privacy_notice_version": "2026-10-01.1",
+    "accepted_at": "2026-10-03T14:06:30Z",
+    "upload_approved": true,
+    "external_ai_allowed": true
+  }
+}

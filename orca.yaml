@@ -1,0 +1,9 @@
+scripts:
+  # Beim Entfernen eines Orca-Worktrees die Codex-Companion-Broker darin beenden; sie überleben sonst als
+  # verwaiste Prozessbäume (homelab/apps/homelab-app#96). Das Skript ist maschinenweit (alle Orca-Repos, dazu
+  # die Orca-Automation „codex-reap“ mit --orphans) und liegt deshalb außerhalb des Repos. Der Hook endet immer
+  # mit 0, damit ein fehlender oder fehlgeschlagener Aufruf das Entfernen nicht blockiert.
+  archive: |
+    reap="$HOME/.orca/scripts/codex-reap.sh"
+    if [ -x "$reap" ]; then "$reap" --worktree "$ORCA_WORKTREE_PATH"; else echo "orca.yaml: $reap fehlt, Codex-Broker in $ORCA_WORKTREE_PATH bleiben stehen" >&2; fi
+    exit 0

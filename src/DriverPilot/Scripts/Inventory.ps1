@@ -95,7 +95,7 @@ $details=[pscustomobject]@{
   Cpu=Read-DetailSection 'CPU' { [pscustomobject]@{Cores=[int]$cpu.NumberOfCores;Threads=[int]$cpu.NumberOfLogicalProcessors;MaxClockMhz=[int]$cpu.MaxClockSpeed} }
   Memory=Read-DetailSection 'Arbeitsspeicher' {
     $slots=(Get-CimInstance Win32_PhysicalMemoryArray -ErrorAction Stop | Where-Object Use -eq 3 | Measure-Object MemoryDevices -Sum).Sum
-    [pscustomobject]@{SlotsTotal=[int]$slots;Modules=@(Get-CimInstance Win32_PhysicalMemory -ErrorAction Stop | ForEach-Object {
+    [pscustomobject]@{SlotsTotal=[int]$slots;Modules=@(Get-CimInstance Win32_PhysicalMemory -ErrorAction Stop | Where-Object {$_} | ForEach-Object {
       [pscustomobject]@{Slot=[string]$_.DeviceLocator;CapacityMb=[long]($_.Capacity/1MB);SmbiosType=[int]$_.SMBIOSMemoryType;RatedMts=[int]$_.Speed;ConfiguredMts=[int]$_.ConfiguredClockSpeed;Manufacturer=[string]$_.Manufacturer;PartNumber=[string]$_.PartNumber}
     })}
   }
@@ -106,7 +106,7 @@ $details=[pscustomobject]@{
       $size=Read-Registry $_.PSPath 'HardwareInformation.qwMemorySize';$desc=Read-Registry $_.PSPath 'DriverDesc'
       try{if($size -is [byte[]]){$size=[BitConverter]::ToInt64($size,0)};if($desc -and $size){$memory[[string]$desc]=[long]$size}}catch{}
     }
-    ,@(Get-CimInstance Win32_VideoController -ErrorAction Stop | ForEach-Object {
+    ,@(Get-CimInstance Win32_VideoController -ErrorAction Stop | Where-Object {$_} | ForEach-Object {
       $vram=$(if($memory.ContainsKey([string]$_.Name)){$memory[[string]$_.Name]}else{[long]$_.AdapterRAM})
       [pscustomobject]@{Name=[string]$_.Name;PnpId=[string]$_.PNPDeviceID;DriverVersion=[string]$_.DriverVersion;VramBytes=$vram}
     })
@@ -117,7 +117,7 @@ $details=[pscustomobject]@{
     try{$systemDisk=[string](Get-Partition -DriveLetter $env:SystemDrive.TrimEnd(':') -ErrorAction Stop | Select-Object -First 1).DiskNumber}catch{}
     $volume=Get-CimInstance Win32_LogicalDisk -Filter "DeviceID='$env:SystemDrive'" -ErrorAction Stop
     $pagefile=(Get-CimInstance Win32_PageFileUsage -ErrorAction SilentlyContinue | Measure-Object AllocatedBaseSize -Sum).Sum
-    [pscustomobject]@{SystemSizeGb=[long]($volume.Size/1GB);SystemFreeGb=[long]($volume.FreeSpace/1GB);PagefileMb=$(if($pagefile){[long]$pagefile}else{$null});Disks=@(Get-PhysicalDisk -ErrorAction Stop | ForEach-Object {
+    [pscustomobject]@{SystemSizeGb=[long]($volume.Size/1GB);SystemFreeGb=[long]($volume.FreeSpace/1GB);PagefileMb=$(if($pagefile){[long]$pagefile}else{$null});Disks=@(Get-PhysicalDisk -ErrorAction Stop | Where-Object {$_} | ForEach-Object {
       [pscustomobject]@{Model=[string]$_.Model;MediaType=[string]$_.MediaType;BusType=[string]$_.BusType;SizeGb=[long]($_.Size/1GB);Health=[string]$_.HealthStatus;Firmware=[string]$_.FirmwareVersion;SystemDisk=$(if($systemDisk){[string]$_.DeviceId -eq $systemDisk}else{$null})}
     })}
   }

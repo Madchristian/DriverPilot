@@ -73,7 +73,9 @@ static class Program
             Check(s.Details is {Cpu:{Cores:8,Threads:16,MaxClockMhz:3900},Memory:{SlotsTotal:4,Modules.Count:1},Gpus.Count:1}&&s.Details.Memory.Modules[0] is {PartNumber:"SYN-3600C16",ConfiguredMts:3600,SmbiosType:26},"detail inventory missing");
             Check(s.Details.Gpus[0] is {Name:"Synthetic GPU",DriverVersion:"32.0.15.6094"}&&s.Details.Storage!=null&&s.Details.Platform!=null,"gpu, storage or platform details missing");
             var empty=PowerShell.Script("function Get-CimInstance { $null }; function Get-WinEvent { @() };\n"+script).GetAwaiter().GetResult();
-            Check(JsonSerializer.Deserialize<Snapshot>(empty)! is {Hardware:not null,Details.Gpus.Count:0},"missing CIM broke profile or details");
+            var none=JsonSerializer.Deserialize<Snapshot>(empty)!;
+            Check(none.Hardware!=null,"missing CIM broke profile");
+            Check(none.Details is {Gpus.Count:0,Memory.Modules.Count:0},"missing CIM produced phantom adapters or modules: "+empty);
         });
         Test("Official URL validation allows only exact reviewed HTTPS hosts",()=>{
             foreach(var host in new[]{"www.asus.com","www.msi.com","www.gigabyte.com","www.asrock.com","www.dell.com","support.hp.com","pcsupport.lenovo.com","www.acer.com","www.nvidia.com","gfwsl.geforce.com"})

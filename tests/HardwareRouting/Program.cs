@@ -37,6 +37,15 @@ static class Program
                 Check(Value(r,"SourceUrl")=="","unrecognized identity got guessed URL: "+vendor);
             }
         });
+        Test("PowerShell transport runs scripts beyond the command-line limit unchanged",()=>{
+            // The script travels on stdin; only a fixed bootstrap is on the command line (32767 characters).
+            var padding=new string('#',40000);
+            var script="# "+padding+"\nfunction Probe {\n  param($Value)\n  \"ok-$Value-äöü\"\n}\nProbe 42\n";
+            Check(PowerShell.Script(script).GetAwaiter().GetResult()=="ok-42-äöü","large multi-line script with umlauts");
+            Check(PowerShell.Script("'vor exit'\nexit 0\n'nach exit'").GetAwaiter().GetResult()=="vor exit","exit still ends the script");
+            var failed=false;try{PowerShell.Script("Get-Item -LiteralPath 'Z:\\does-not-exist-driverpilot'").GetAwaiter().GetResult();}catch{failed=true;}
+            Check(failed,"errors still stop the script ($ErrorActionPreference = Stop)");
+        });
         Test("Read-only inventory emits shared hardware profile and tolerates absent CIM fields",()=>{
             using var stream=typeof(Snapshot).Assembly.GetManifestResourceStream("DriverPilot.Scripts.Inventory.ps1")!;
             var script=new System.IO.StreamReader(stream).ReadToEnd();

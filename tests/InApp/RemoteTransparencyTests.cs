@@ -68,7 +68,7 @@ public static class RemoteTransparencyTests
                 return Json(HttpStatusCode.OK, new CaseView(CaseId, "released", null, result.ScanId, sha, "2026-10-03T14:05:00Z", "2026-10-10T14:05:00Z", null, result));
             }
             if (FailCapabilities) throw new HttpRequestException("PRIVATE capability failure");
-            var caps = new Capabilities("1.0", ["1.0"], "1.0", 262144, 900, 300, 7, new("2026-10-01.1", "Synthetischer Hinweis <script>inert</script>"), true);
+            var caps = new Capabilities("1.0", ["1.0", ContractRules.ReportSchemaVersion], "1.0", 262144, 900, 300, 7, new("2026-10-01.1", "Synthetischer Hinweis <script>inert</script>"), true);
             return new(HttpStatusCode.OK) { Content = new StringContent(JsonSerializer.Serialize(caps, RemoteReportBuilder.Json), Encoding.UTF8, "application/json") };
         }
     }

@@ -37,6 +37,7 @@
   "forbidden_text": {
     "description": "Konservative Marker für Geheimnisse, Pfade und Kennungen. Trifft ein Muster, lehnt der Server den gesamten Upload mit text_rejected ab; es wird nichts abgeschnitten oder bereinigt. Der Client prüft dieselben Muster vor der Vorschau: Hardwarefelder mit Treffer setzt er auf null, bei Freitext bittet er um Umformulierung. Die Muster sind keine Garantie für Anonymität.",
     "syntax": "Gemeinsame Teilmenge von RE2, .NET und ECMAScript; ohne Lookaround und Rückverweise. Alle Muster gelten ohne Beachtung der Groß-/Kleinschreibung und als Teiltreffer.",
+    "pointer_syntax": "JSON Pointer; das Segment * steht für jedes Element eines Arrays. Ein Zeiger auf ein fehlendes Feld, null oder ein Nicht-Array an der Stelle von * trifft nichts.",
     "applies_to": {
       "case-create-request": [
         "/symptom/description",
@@ -48,7 +49,13 @@
         "/hardware/board_manufacturer",
         "/hardware/board_model",
         "/hardware/board_revision",
-        "/hardware/bios_version"
+        "/hardware/bios_version",
+        "/hardware_details/memory/modules/*/slot",
+        "/hardware_details/memory/modules/*/manufacturer",
+        "/hardware_details/memory/modules/*/part_number",
+        "/hardware_details/gpus/*/name",
+        "/hardware_details/storage/disks/*/model",
+        "/hardware_details/storage/disks/*/firmware"
       ],
       "feedback-request": ["/note"]
     },

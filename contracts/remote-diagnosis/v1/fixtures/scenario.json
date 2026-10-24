@@ -34,6 +34,36 @@
       "code": "schema_violation",
       "why": "Freitext über 2000 Zeichen."
     },
+    "case-create-request/details-in-v10.json": {
+      "kind": "schema",
+      "status": 422,
+      "code": "schema_violation",
+      "why": "hardware_details in einem Bericht der Version 1.0."
+    },
+    "case-create-request/details-missing-in-v11.json": {
+      "kind": "schema",
+      "status": 422,
+      "code": "schema_violation",
+      "why": "Version 1.1 ohne hardware_details."
+    },
+    "case-create-request/details-serial-in-module.json": {
+      "kind": "semantic",
+      "status": 422,
+      "code": "text_rejected",
+      "why": "Seriennummer in der Typnummer eines Speichermoduls (Zeiger mit *)."
+    },
+    "case-create-request/details-unknown-gpu-field.json": {
+      "kind": "schema",
+      "status": 422,
+      "code": "schema_violation",
+      "why": "Unbekanntes Feld serial in der GPU-Telemetrie."
+    },
+    "case-create-request/details-url-in-gpu-name.json": {
+      "kind": "semantic",
+      "status": 422,
+      "code": "text_rejected",
+      "why": "Adresse im Namen einer Grafikkarte (Zeiger mit *)."
+    },
     "case-create-request/device-ref-unknown.json": {
       "kind": "semantic",
       "status": 422,

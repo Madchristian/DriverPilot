@@ -10,7 +10,7 @@ public record Device(string Name, string Class, string Version, string Provider,
 public record Finding(string Key, string Title, string Detail, string Severity, string Time, string DeviceRef="", int Count=1, DateTime? FirstSeen=null, DateTime? LastSeen=null, string Source="", int EventId=0, int Level=0);
 /// <summary>Per-area scan completeness: complete, truncated, failed or unavailable.</summary>
 public record CollectionStatus(string Hardware="failed", string Devices="failed", string SystemEvents="failed", string WlanEvents="failed");
-public record Snapshot(string Windows, string Cpu, string Board, string Bios, double RamGB, List<Device> Devices, List<Finding> Findings, List<string> Warnings, HardwareProfile? Hardware=null, CollectionStatus? Collection=null);
+public record Snapshot(string Windows, string Cpu, string Board, string Bios, double RamGB, List<Device> Devices, List<Finding> Findings, List<string> Warnings, HardwareProfile? Hardware=null, CollectionStatus? Collection=null, HardwareDetails? Details=null);
 public record UpdateRow(string Id, string Title, string Manufacturer, string Class, string Date, string Status);
 public record HistoryRow(string Time, string Action, string Detail);
 public class Preferences
@@ -92,15 +92,23 @@ public static class PowerShell
         { using var controls=Assembly.GetExecutingAssembly().GetManifestResourceStream("DriverPilot.Scripts.Controls.ps1")!;using var controlsReader=new StreamReader(controls);script=await controlsReader.ReadToEndAsync()+"\n"+script; }
         return await Script(script,timeoutSeconds);
     }
+    const string PowerShellBootstrap="[Console]::InputEncoding=[System.Text.UTF8Encoding]::new($false); [Console]::OutputEncoding=[System.Text.Encoding]::UTF8; $ErrorActionPreference='Stop';\n. ([scriptblock]::Create([Console]::In.ReadToEnd()))";
     public static async Task<string> Script(string script,int timeoutSeconds=180)
     {
-        var psi=new ProcessStartInfo(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.System),"WindowsPowerShell","v1.0","powershell.exe")) { UseShellExecute=false,CreateNoWindow=true,RedirectStandardOutput=true,RedirectStandardError=true,StandardOutputEncoding=Encoding.UTF8,StandardErrorEncoding=Encoding.UTF8 };
+        var psi=new ProcessStartInfo(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.System),"WindowsPowerShell","v1.0","powershell.exe")) { UseShellExecute=false,CreateNoWindow=true,RedirectStandardInput=true,RedirectStandardOutput=true,RedirectStandardError=true,StandardInputEncoding=new UTF8Encoding(false),StandardOutputEncoding=Encoding.UTF8,StandardErrorEncoding=Encoding.UTF8 };
         psi.ArgumentList.Add("-NoProfile");psi.ArgumentList.Add("-NonInteractive");psi.ArgumentList.Add("-EncodedCommand");
-        psi.ArgumentList.Add(Convert.ToBase64String(Encoding.Unicode.GetBytes("[Console]::OutputEncoding=[System.Text.Encoding]::UTF8; $ErrorActionPreference='Stop';\n"+script)));
+        // Only a fixed bootstrap goes on the command line (limit 32767 characters); the script itself arrives on stdin
+        // and is dot-sourced, so it runs in the same scope as before and `exit` still ends the process.
+        psi.ArgumentList.Add(Convert.ToBase64String(Encoding.Unicode.GetBytes(PowerShellBootstrap)));
         using var p=Process.Start(psi)??throw new Exception("PowerShell konnte nicht gestartet werden.");
         var output=p.StandardOutput.ReadToEndAsync(); var error=p.StandardError.ReadToEndAsync();
         using var cts=new CancellationTokenSource(TimeSpan.FromSeconds(timeoutSeconds));
-        try { await p.WaitForExitAsync(cts.Token); } catch (OperationCanceledException) { p.Kill(true); throw new TimeoutException("Die Windows-Abfrage hat das Zeitlimit überschritten."); }
+        try
+        {
+            await p.StandardInput.WriteAsync(script.AsMemory(),cts.Token); p.StandardInput.Close();
+            await p.WaitForExitAsync(cts.Token);
+        }
+        catch (OperationCanceledException) { p.Kill(true); throw new TimeoutException("Die Windows-Abfrage hat das Zeitlimit überschritten."); }
         var text=await output; var err=await error;
         if(p.ExitCode!=0) throw new Exception(err.Length>1600?err[..1600]:err);
         return text.Trim('\uFEFF','\r','\n',' ');

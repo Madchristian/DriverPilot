@@ -6,7 +6,7 @@ namespace DriverPilot.RemoteDiagnosis;
 /// <summary>Limits and text markers shared with the server: contracts/remote-diagnosis/v1/rules.json and errors.json.</summary>
 public sealed class ContractRules
 {
-    public const string ReportSchemaVersion = "1.0";
+    public const string ReportSchemaVersion = "1.1";
     public int MaxUploadBytes { get; }
     public int MaxResultBytes { get; }
     public int MaxScanAgeSeconds { get; }

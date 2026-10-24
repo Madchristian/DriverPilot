@@ -40,9 +40,14 @@ public static class RemoteDiagnosisTests
         Check(!send.IsEnabled && !export.IsEnabled && consent.IsChecked != true, "nothing can be sent or exported before a description exists");
         Find<TextBox>("RemoteDescription").Text = "Synthetischer Testfall: Bild friert nach 20 Minuten ein.";
         using var draft = JsonDocument.Parse(preview.Text);
-        Check(draft.RootElement.GetProperty("schema_version").GetString() == "1.0" && preview.Text.Contains("Synthetischer Testfall")
+        Check(draft.RootElement.GetProperty("schema_version").GetString() == ContractRules.ReportSchemaVersion && preview.Text.Contains("Synthetischer Testfall")
             && draft.RootElement.GetProperty("consent").ValueKind == JsonValueKind.Null && !session.HasFinalPreview,
             "draft shows the real projection of this PC with explicit null consent, never approved for sending");
+        // Also called with synthetic scans without details; the real inventory is checked in SelfTest.
+        var details = draft.RootElement.GetProperty("hardware_details");
+        Check(snapshot.Details == null ? details.ValueKind == JsonValueKind.Null
+                : details.ValueKind == JsonValueKind.Object && new[] { "cpu", "memory", "storage", "platform" }.All(area => details.GetProperty(area).ValueKind == JsonValueKind.Object) == (snapshot.Details is { Cpu: not null, Memory: not null, Storage: not null, Platform: not null }),
+            "hardware_details in the draft mirrors the scanned detail inventory");
         Check(export.IsEnabled && !send.IsEnabled, "unpaired: preview can be saved locally but not sent");
         consent.IsChecked = true;
         Check(!send.IsEnabled, "consent alone does not enable sending without access and privacy notice");

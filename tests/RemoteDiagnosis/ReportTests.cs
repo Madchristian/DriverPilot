@@ -43,11 +43,52 @@ static class ReportTests
         Check(preview == text, "preview includes all consent fields and is byte-identical to the final request");
         Check(Build(previous: "5f0c2a7e-3b1d-4c8a-9e21-7a4d0b6c1f02").PreviousCaseId != null && Build(previous: "not-a-uuid").PreviousCaseId == null, "previous case only as UUID");
 
+        Details();
         Limits();
         Sanitizing();
         Input();
         TextRules();
-        return "PASS: report projection, schema conformance, minimization, limits, hardware sanitizing, input checks, shared text rules";
+        return "PASS: report projection, schema conformance, hardware details, minimization, limits, hardware sanitizing, input checks, shared text rules";
+    }
+
+    static void Details()
+    {
+        var details = Build().HardwareDetails!;
+        Check(details.Cpu == new ReportCpu(8, 16, 4201), "cpu details");
+        Check(details.Memory is { SlotsTotal: 4, Modules.Count: 2 } && details.Memory.Modules[0] == new ReportMemoryModule("DIMM_A2", 16384, "ddr4", 2133, 3600, "G Skill Intl", "F4-3600C16-16GVKC"),
+            "memory modules with SMBIOS type and rated vs configured speed");
+        Check(details.Gpus is { Count: 1 } && details.Gpus[0] is { Vendor: "nvidia", Name: "NVIDIA GeForce RTX 4090", VramMb: 24576, DriverVersion: "32.0.15.6094" }, "only the physical GPU, vendor from the PCI id");
+        Check(details.Gpus![0].Telemetry == new ReportGpuTelemetry(47, null, 210, 3105, 405, 10501, 29, 450, 450, 600, 1, 4, 16, 16), "nvidia-smi row parsed, [N/A] becomes null");
+        Check(details.Storage is { SystemSizeGb: 930, SystemFreeGb: 112, PagefileMb: 4864 } && details.Storage.Disks[0] == new ReportDisk("Samsung SSD 990 PRO 2TB", "ssd", "nvme", 1863, "healthy", "4B2QJXD7", true)
+            && details.Storage.Disks[1] is { Media: "hdd", Bus: "sata", Health: "warning", SystemDisk: false }, "disk names and numeric MSFT_PhysicalDisk codes are mapped");
+        Check(details.Platform == new ReportPlatform("uefi", true, "balanced", true, 5), "platform details; uptime rounded down");
+
+        var raw = Synthetic.Details();
+        var hostile = HardwareDetailsProjection.Build(raw with
+        {
+            Cpu = new(0, 99999, 50),
+            Memory = new(0, [new("C:\\Users\\Alice", -1, 99, 0, 30000, "www.example.invalid", "S/N: 2219A0F3")]),
+            Gpus = [raw.Gpus![0] with { Name = "RTX alice@example.invalid", DriverVersion = "32.0 beta", VramBytes = 0 }],
+            NvidiaSmi = ["RTX alice@example.invalid, 47, 30"],
+            Storage = new(-5, null, null, [new("Disk 192.168.1.20", "Tape", "Fibre", -1, "Lost", new string('x', 161), null)]),
+            Platform = new("BIOS", 7, "", 0, double.NaN)
+        }, Rules)!;
+        Check(hostile.Cpu == new ReportCpu(null, null, null) && hostile.Memory!.SlotsTotal == null
+            && hostile.Memory.Modules[0] == new ReportMemoryModule(null, null, "other", null, null, null, null), "unsafe or out-of-range memory and cpu values become null");
+        Check(hostile.Gpus![0] is { Name: null, VramMb: null, DriverVersion: null, Telemetry: null }, "unsafe gpu values and a malformed nvidia-smi row become null");
+        Check(hostile.Storage!.SystemSizeGb == null && hostile.Storage.Disks[0] == new ReportDisk(null, "unspecified", "other", null, "unknown", null, null), "unknown disk codes are named as unknown, never guessed");
+        Check(hostile.Platform == new ReportPlatform(null, null, null, null, null), "unknown platform values become null");
+        Check(HardwareDetailsProjection.Build(raw with { Platform = raw.Platform! with { PowerPlanId = @"Microsoft:PowerPlan\{0d1e2f3a-0000-4000-8000-00000000abcd}" } }, Rules)!.Platform!.PowerPlan == "custom",
+            "a user-defined power plan is only reported as custom");
+        Check(File.ReadAllText(Path.Combine(Contract.Root, "..", "..", "..", "src", "DriverPilot", "Scripts", "Inventory.ps1")).Contains("--query-gpu=" + HardwareDetailsProjection.NvidiaSmiFields + " "),
+            "Inventory.ps1 requests exactly the nvidia-smi columns the parser expects");
+
+        Check(HardwareDetailsProjection.Build(null, Rules) == null && Build(Synthetic.Snapshot() with { Details = null }).HardwareDetails == null, "missing detail inventory is null");
+        var empty = HardwareDetailsProjection.Build(new HardwareDetails(), Rules)!;
+        Check(empty == new ReportHardwareDetails(null, null, null, null, null), "every area that could not be read stays null");
+        var many = HardwareDetailsProjection.Build(raw with { Gpus = Enumerable.Repeat(raw.Gpus[0], 6).ToList(), NvidiaSmi = [], Memory = new(64, Enumerable.Repeat(raw.Memory!.Modules![0], 40).ToList()) }, Rules)!;
+        Check(many.Gpus!.Count == HardwareDetailsProjection.MaxGpus && many.Gpus.All(g => g.Telemetry == null) && many.Memory!.Modules.Count == HardwareDetailsProjection.MaxMemoryModules, "array limits; no telemetry without a matching row");
+        Check(Contract.Conforms("case-create-request", RemoteReportBuilder.Freeze(Build(Synthetic.Snapshot() with { Details = raw with { Gpus = many.Gpus.Select(_ => raw.Gpus[0]).ToList() } }), Consent)), "report with details conforms");
     }
 
     static void Limits()
@@ -101,14 +142,24 @@ static class ReportTests
     /// <summary>The embedded rules must judge the contract fixtures exactly as the contract says.</summary>
     static void TextRules()
     {
-        string[] pointers = ["description", "reproduction_steps", "note", "windows_version", "cpu", "system_manufacturer", "system_model", "board_manufacturer", "board_model", "board_revision", "bios_version"];
+        using var rules = JsonDocument.Parse(File.ReadAllBytes(Path.Combine(Contract.Root, "rules.json")));
+        var appliesTo = rules.RootElement.GetProperty("forbidden_text").GetProperty("applies_to");
+        // rules.json pointer syntax: the segment * stands for every array element.
+        static IEnumerable<JsonElement> Resolve(JsonElement element, string[] parts, int index)
+        {
+            if (index == parts.Length) { yield return element; yield break; }
+            var children = parts[index] == "*"
+                ? element.ValueKind == JsonValueKind.Array ? element.EnumerateArray().ToList() : []
+                : element.ValueKind == JsonValueKind.Object && element.TryGetProperty(parts[index], out var child) ? [child] : new List<JsonElement>();
+            foreach (var next in children) foreach (var value in Resolve(next, parts, index + 1)) yield return value;
+        }
         bool Forbidden(string path)
         {
+            var schema = Path.GetFileName(Path.GetDirectoryName(path))!;
             using var document = JsonDocument.Parse(File.ReadAllBytes(path));
-            var root = document.RootElement;
-            var holders = new List<JsonElement> { root };
-            foreach (var name in new[] { "symptom", "hardware" }) if (root.TryGetProperty(name, out var child)) holders.Add(child);
-            return holders.SelectMany(h => pointers.Select(p => h.TryGetProperty(p, out var value) && value.ValueKind == JsonValueKind.String ? value.GetString() : null)).Any(Rules.HasForbiddenText);
+            return appliesTo.GetProperty(schema).EnumerateArray()
+                .SelectMany(pointer => Resolve(document.RootElement, pointer.GetString()!.Trim('/').Split('/'), 0))
+                .Any(value => value.ValueKind == JsonValueKind.String && Rules.HasForbiddenText(value.GetString()));
         }
         using var scenario = JsonDocument.Parse(Contract.Fixture("scenario.json"));
         var expected = scenario.RootElement.GetProperty("invalid").EnumerateObject().Where(e => e.Value.GetProperty("code").GetString() == "text_rejected").Select(e => e.Name).ToList();

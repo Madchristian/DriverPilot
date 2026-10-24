@@ -2,6 +2,18 @@ namespace DriverPilot;
 
 public record HardwareProfile(string SystemManufacturer="", string SystemModel="", string BoardManufacturer="", string BoardModel="", string BoardRevision="", string BiosVersion="", string BiosDate="", string Architecture="", string WindowsBuild="", bool IsPortable=false);
 
+// Raw detail inventory exactly as Windows reports it (Inventory.ps1). An area is null when it could not be read;
+// validation and normalization happen only in the report projection, never here.
+public record HardwareDetails(CpuDetails? Cpu=null, MemoryDetails? Memory=null, List<GpuDetails>? Gpus=null, List<string>? NvidiaSmi=null, StorageDetails? Storage=null, PlatformDetails? Platform=null);
+public record CpuDetails(int? Cores=null, int? Threads=null, int? MaxClockMhz=null);
+public record MemoryDetails(int? SlotsTotal=null, List<MemoryModule>? Modules=null);
+public record MemoryModule(string? Slot=null, long? CapacityMb=null, int? SmbiosType=null, int? RatedMts=null, int? ConfiguredMts=null, string? Manufacturer=null, string? PartNumber=null);
+/// <summary>PnpId stays local: it is only used to derive the vendor and is never sent.</summary>
+public record GpuDetails(string? Name=null, string? PnpId=null, string? DriverVersion=null, long? VramBytes=null);
+public record StorageDetails(long? SystemSizeGb=null, long? SystemFreeGb=null, long? PagefileMb=null, List<DiskDetails>? Disks=null);
+public record DiskDetails(string? Model=null, string? MediaType=null, string? BusType=null, long? SizeGb=null, string? Health=null, string? Firmware=null, bool? SystemDisk=null);
+public record PlatformDetails(string? FirmwareType=null, int? SecureBoot=null, string? PowerPlanId=null, int? HwSchMode=null, double? UptimeHours=null);
+
 /// <summary>Model part of a Windows hardware ID. The instance suffix (often a serial number) is never returned.</summary>
 public sealed record HardwareId(string Bus,string VendorId,string ProductId,string? SubsystemId)
 {

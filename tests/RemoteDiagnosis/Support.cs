@@ -138,7 +138,19 @@ static class Synthetic
         ],
         ["private warning with ALICE-PC"],
         new("System manufacturer", "System Product Name", "Micro-Star International Co., Ltd.", "MPG X670E CARBON WIFI (MS-7D70)", "1.0", "1.I0", "2026-03-18", "X64", "26100", false),
-        new("complete", "complete", "complete", "unavailable"));
+        new("complete", "complete", "complete", "unavailable"), Details());
+
+    /// <summary>Raw values as Inventory.ps1 reports them, including adapters and values the projection must drop.</summary>
+    public static HardwareDetails Details() => new(
+        new(8, 16, 4201),
+        new(4, [new("DIMM_A2", 16384, 26, 2133, 3600, "G Skill Intl", "F4-3600C16-16GVKC"), new("DIMM_B2", 16384, 26, 2133, 3600, "G Skill Intl", "F4-3600C16-16GVKC")]),
+        [
+            new("NVIDIA GeForce RTX 4090", GpuId, "32.0.15.6094", 25769803776),
+            new("Microsoft Remote Display Adapter", @"SWD\REMOTEDISPLAYENUM\RDPIDD_INDIRECTDISPLAY&SESSIONID_0002", "10.0.26100.1", 0)
+        ],
+        ["NVIDIA GeForce RTX 4090, 47, [N/A], 210, 3105, 405, 10501, 28.53, 450.00, 450.00, 600.00, 1, 4, 16, 16"],
+        new(930, 112, 4864, [new("Samsung SSD 990 PRO 2TB", "SSD", "NVMe", 1863, "Healthy", "4B2QJXD7", true), new("ST2000DM008-2FR102", "3", "11", 1863, "1", "0001", false)]),
+        new("UEFI", 1, @"Microsoft:PowerPlan\{381b4222-f694-41f0-9685-ff5bb260df2e}", 2, 5.9));
 
     public static SymptomInput Symptom() => new("wow_crash", "WoW stürzt nach etwa 20 Minuten ab, Fehler #132 (0x85100084). Treiber 32.0.15.6094.", "1. WoW starten\r\n2. Schlachtzug betreten",
         new WowInput("11.2.5.63506", "wow_only", "no"));

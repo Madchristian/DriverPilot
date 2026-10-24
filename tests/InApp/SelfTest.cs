@@ -13,6 +13,9 @@ public static class SelfTest
         var snapshot=JsonSerializer.Deserialize<Snapshot>(raw,Store.Json)??throw new Exception("Inventory returned null");
         if(snapshot.Devices.Count<1||string.IsNullOrEmpty(snapshot.Cpu))throw new Exception("Hardware enumeration failed");
         findings.Add($"Hardware scan: {snapshot.Devices.Count} devices, {snapshot.Findings.Count} findings, {snapshot.Warnings.Count} warnings.");
+        var details=snapshot.Details??throw new Exception("Detail inventory missing");
+        if(details.Cpu==null||details.Memory==null||details.Storage==null||details.Platform==null||details.Gpus==null)throw new Exception("Detail inventory incomplete: "+string.Join("; ",snapshot.Warnings));
+        findings.Add($"Detail inventory: {details.Memory.Modules?.Count??0} memory modules, {details.Gpus.Count} display adapters, {details.Storage.Disks?.Count??0} disks, nvidia-smi rows {details.NvidiaSmi?.Count??0}.");
         if(Rules.ShouldNotify(new("disabled","WLAN","disabled","Info",""),new()))throw new Exception("Disabled device notification regression");
         var preferences=new Preferences();preferences.Ignored.Add("ignored");
         if(Rules.ShouldNotify(new("ignored","Known","known","Warnung",""),preferences))throw new Exception("Known issue notification regression");

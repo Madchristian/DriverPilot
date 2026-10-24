@@ -1,7 +1,8 @@
 {
   "protocol_version": "1.0",
   "report_schema_versions": [
-    "1.0"
+    "1.0",
+    "1.1"
   ],
   "result_schema_version": "1.0",
   "max_upload_bytes": 262144,

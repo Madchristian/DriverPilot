@@ -25,7 +25,7 @@ Status: **umgesetzt** in `src/DriverPilot/RemoteDiagnosis` und durch `tests/Remo
 
 ## Bericht
 
-Der Client ruft `GET /capabilities` nach dem Koppeln und bei jedem Öffnen des Dialogs ab. Er sendet nur, wenn `protocol_version` mit `1.` beginnt und `report_schema_versions` den Wert `1.0` enthält.
+Der Client ruft `GET /capabilities` nach dem Koppeln und bei jedem Öffnen des Dialogs ab. Er sendet Berichte der Version `1.1` und nur, wenn `protocol_version` mit `1.` beginnt und `report_schema_versions` den Wert `1.1` enthält.
 
 | Feld | Was der Client sendet |
 | --- | --- |
@@ -36,6 +36,11 @@ Der Client ruft `GET /capabilities` nach dem Koppeln und bei jedem Öffnen des D
 | `previous_case_id` | ID des zuletzt gesendeten eigenen Falls, solange der Client ihn kennt und nicht gelöscht hat; sonst `null`. |
 | `symptom.occurred_at` | In der ersten Version immer `null`. |
 | `hardware.*` | Wert aus Windows; `null`, wenn leer, Platzhalter des Herstellers, zu lang oder mit Treffer bei einem Textmarker. |
+| `hardware_details` | Ab Version 1.1. Jeder Bereich (`cpu`, `memory`, `gpus`, `storage`, `platform`) ist `null`, wenn seine Abfrage scheiterte; einzelne Werte sind `null`, wenn sie fehlen, außerhalb des Schemabereichs liegen oder einen Textmarker treffen. Keine Seriennummern. |
+| `hardware_details.memory` | Aus `Win32_PhysicalMemory`/`Win32_PhysicalMemoryArray`: Steckplatz, Größe, SMBIOS-Typ, Nenn- und eingestellte Geschwindigkeit, Hersteller und Typnummer; höchstens 32 Module. |
+| `hardware_details.gpus` | Nur physische PCI-Adapter aus `Win32_VideoController`, höchstens 4; Hersteller aus der PCI-Vendor-ID, VRAM aus `HardwareInformation.qwMemorySize` des Treibers. `telemetry` ist eine Momentaufnahme von `nvidia-smi` (nur NVIDIA, Abbruch nach 10 Sekunden); `[N/A]` wird `null`. |
+| `hardware_details.storage` | Größe und freier Platz des Systemlaufwerks, Auslagerungsdatei und höchstens 16 Laufwerke aus `Get-PhysicalDisk` (Modell, Medium, Bus, Größe, Zustand laut Windows, Firmware). |
+| `hardware_details.platform` | `%firmware_type%`, Secure Boot und HwSchMode aus der Registry, Laufzeit seit dem letzten Start. Der Energiesparplan erscheint nur als Windows-Standardplan oder `custom`; den frei vergebbaren Namen sendet der Client nie. |
 | `devices` | Höchstens 64, in dieser Rangfolge: von Befunden referenzierte Geräte, Geräte mit Problemcode, dann Grafik, Netzwerk, Audio und Speichercontroller mit PCI- oder USB-Kennung. IDs `dev-01`, `dev-02`, … |
 | `devices[].model` | Aus der Windows-Hardware-ID; `null`, wenn sie weder PCI noch USB ist. |
 | `findings` | Höchstens 200 Ereignisgruppen (Quelle, Ereignis-ID, Gerät, Stunde), die schwersten und jüngsten zuerst. IDs `f-001`, `f-002`, … |

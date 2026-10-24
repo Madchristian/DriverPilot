@@ -47,8 +47,10 @@ static class Program
                         Win32_BaseBoard { [pscustomobject]@{Manufacturer='ASUS';Product='Synthetic board';Version='1.0';SerialNumber='DO-NOT-EXPORT'} }
                         Win32_BIOS { [pscustomobject]@{SMBIOSBIOSVersion='123';ReleaseDate=[datetime]'2020-01-02';SerialNumber='DO-NOT-EXPORT'} }
                         Win32_OperatingSystem { [pscustomobject]@{Caption='Windows 11';BuildNumber='26100';OSArchitecture='64-bit'} }
-                        Win32_Processor { [pscustomobject]@{Name='Synthetic CPU'} }
-                        Win32_PhysicalMemory { [pscustomobject]@{Capacity=34359738368} }
+                        Win32_Processor { [pscustomobject]@{Name='Synthetic CPU';NumberOfCores=8;NumberOfLogicalProcessors=16;MaxClockSpeed=3900} }
+                        Win32_PhysicalMemory { [pscustomobject]@{Capacity=34359738368;DeviceLocator='DIMM_A2';SMBIOSMemoryType=26;Speed=2133;ConfiguredClockSpeed=3600;Manufacturer='Synthetic';PartNumber='SYN-3600C16';SerialNumber='DO-NOT-EXPORT'} }
+                        Win32_PhysicalMemoryArray { [pscustomobject]@{Use=3;MemoryDevices=4} }
+                        Win32_VideoController { [pscustomobject]@{Name='Synthetic GPU';PNPDeviceID='PCI\VEN_10DE&DEV_2684&SUBSYS_88891043&REV_A1\4&3A1B2C&0&0019';DriverVersion='32.0.15.6094';AdapterRAM=4293918720} }
                         Win32_SystemEnclosure { [pscustomobject]@{ChassisTypes=@(10)} }
                     }
                 }
@@ -58,8 +60,11 @@ static class Program
             var s=JsonSerializer.Deserialize<Snapshot>(json)!;
             Check(s.Hardware is {SystemManufacturer:"ASUSTeK COMPUTER INC.",SystemModel:"Synthetic notebook",BoardManufacturer:"ASUS",BoardModel:"Synthetic board",BoardRevision:"1.0",BiosVersion:"123",BiosDate:"2020-01-02",WindowsBuild:"26100",IsPortable:true},"inventory hardware identity missing");
             Check(!json.Contains("DO-NOT-EXPORT"),"serial exported");
+            // A single module and a single adapter must stay JSON arrays (PowerShell unrolls one-element lists).
+            Check(s.Details is {Cpu:{Cores:8,Threads:16,MaxClockMhz:3900},Memory:{SlotsTotal:4,Modules.Count:1},Gpus.Count:1}&&s.Details.Memory.Modules[0] is {PartNumber:"SYN-3600C16",ConfiguredMts:3600,SmbiosType:26},"detail inventory missing");
+            Check(s.Details.Gpus[0] is {Name:"Synthetic GPU",DriverVersion:"32.0.15.6094"}&&s.Details.Storage!=null&&s.Details.Platform!=null,"gpu, storage or platform details missing");
             var empty=PowerShell.Script("function Get-CimInstance { $null }; function Get-WinEvent { @() };\n"+script).GetAwaiter().GetResult();
-            Check(JsonSerializer.Deserialize<Snapshot>(empty)!.Hardware!=null,"missing CIM broke profile");
+            Check(JsonSerializer.Deserialize<Snapshot>(empty)! is {Hardware:not null,Details.Gpus.Count:0},"missing CIM broke profile or details");
         });
         Test("Official URL validation allows only exact reviewed HTTPS hosts",()=>{
             foreach(var host in new[]{"www.asus.com","www.msi.com","www.gigabyte.com","www.asrock.com","www.dell.com","support.hp.com","pcsupport.lenovo.com","www.acer.com","www.nvidia.com","gfwsl.geforce.com"})

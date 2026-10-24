@@ -59,6 +59,17 @@ def resolve_pointer(document, pointer: str):
     return document
 
 
+def resolve_values(document, pointer: str) -> list:
+    """Every value a rules.json pointer selects; the segment * stands for each array element."""
+    values = [document]
+    for part in pointer.strip("/").split("/"):
+        if part == "*":
+            values = [item for value in values if isinstance(value, list) for item in value]
+        else:
+            values = [value[part] for value in values if isinstance(value, dict) and part in value]
+    return values
+
+
 class SchemaSet:
     """All schema files of one contract version, addressable by short name."""
 
@@ -156,10 +167,26 @@ class Contract:
 
     def _text_error_code(self, name: str, instance: dict) -> str | None:
         for pointer in self.rules["forbidden_text"]["applies_to"].get(name, []):
-            value = resolve_pointer(instance, pointer)
-            if isinstance(value, str) and any(pattern.search(value) for _, pattern in self.forbidden_text):
-                return "text_rejected"
+            for value in resolve_values(instance, pointer):
+                if isinstance(value, str) and any(pattern.search(value) for _, pattern in self.forbidden_text):
+                    return "text_rejected"
         return None
+
+    def schemas_at(self, name: str, pointer: str) -> list[dict]:
+        """Subschemas a rules.json pointer reaches, following local $ref, anyOf and array items (*)."""
+        document = self.schemas.documents.get(name, {})
+
+        def deref(schema: dict) -> dict:
+            while schema.get("$ref", "").startswith("#/$defs/"):
+                schema = document["$defs"][schema["$ref"].rsplit("/", 1)[1]]
+            return schema
+
+        reached = [document]
+        for part in pointer.strip("/").split("/"):
+            options = [deref(option) for schema in map(deref, reached) for option in schema.get("anyOf", [schema])]
+            reached = [child for option in options
+                       if (child := option.get("items") if part == "*" else option.get("properties", {}).get(part))]
+        return reached
 
 
 # --- checks: each returns a list of problems ------------------------------
@@ -250,12 +277,7 @@ def check_rules(contract: Contract) -> list[str]:
         if name not in contract.schemas.documents:
             problems.append(f"rules.json applies text rules to unknown schema {name}")
         for pointer in pointers:
-            schema = contract.schemas.documents.get(name, {})
-            for part in pointer.strip("/").split("/"):
-                schema = schema.get("properties", {}).get(part) or schema.get("$defs", {}).get(part, {})
-                if "$ref" in schema and schema["$ref"].startswith("#/$defs/"):
-                    schema = contract.schemas.documents[name]["$defs"][schema["$ref"].rsplit("/", 1)[1]]
-            if not schema:
+            if not contract.schemas_at(name, pointer):
                 problems.append(f"rules.json pointer {pointer} does not exist in schema {name}")
     return problems
 

@@ -5,11 +5,21 @@ namespace DriverPilot.RemoteDiagnosis;
 
 // Wire shape of case-create-request.schema.json. Every member is always written; unknown is null.
 public sealed record RemoteReport(string SchemaVersion, string AppVersion, string ScanId, string ScannedAt, string ObservationStart, string ObservationEnd,
-    string? PreviousCaseId, ReportSymptom Symptom, ReportHardware Hardware, IReadOnlyList<ReportDevice> Devices, IReadOnlyList<ReportFinding> Findings,
+    string? PreviousCaseId, ReportSymptom Symptom, ReportHardware Hardware, ReportHardwareDetails? HardwareDetails, IReadOnlyList<ReportDevice> Devices, IReadOnlyList<ReportFinding> Findings,
     ReportCollection Collection, ReportWow? Wow, ReportConsent? Consent);
 public sealed record ReportSymptom(string Category, string Description, string? ReproductionSteps, string? OccurredAt);
 public sealed record ReportHardware(string? WindowsVersion, string? WindowsBuild, string? Architecture, string? Cpu, int? RamGb, string? SystemManufacturer, string? SystemModel,
     bool? IsPortable, string? BoardManufacturer, string? BoardModel, string? BoardRevision, string? BiosVersion, string? BiosDate);
+public sealed record ReportHardwareDetails(ReportCpu? Cpu, ReportMemory? Memory, IReadOnlyList<ReportGpu>? Gpus, ReportStorage? Storage, ReportPlatform? Platform);
+public sealed record ReportCpu(int? Cores, int? Threads, int? MaxClockMhz);
+public sealed record ReportMemory(int? SlotsTotal, IReadOnlyList<ReportMemoryModule> Modules);
+public sealed record ReportMemoryModule(string? Slot, int? CapacityMb, string? Type, int? RatedMts, int? ConfiguredMts, string? Manufacturer, string? PartNumber);
+public sealed record ReportGpu(string Vendor, string? Name, int? VramMb, string? DriverVersion, ReportGpuTelemetry? Telemetry);
+public sealed record ReportGpuTelemetry(int? TemperatureC, int? FanPercent, int? GraphicsClockMhz, int? GraphicsClockMaxMhz, int? MemoryClockMhz, int? MemoryClockMaxMhz,
+    int? PowerDrawW, int? PowerLimitW, int? PowerLimitDefaultW, int? PowerLimitMaxW, int? PcieGenCurrent, int? PcieGenMax, int? PcieWidthCurrent, int? PcieWidthMax);
+public sealed record ReportStorage(int? SystemSizeGb, int? SystemFreeGb, int? PagefileMb, IReadOnlyList<ReportDisk> Disks);
+public sealed record ReportDisk(string? Model, string Media, string Bus, int? SizeGb, string Health, string? Firmware, bool? SystemDisk);
+public sealed record ReportPlatform(string? FirmwareMode, bool? SecureBoot, string? PowerPlan, bool? HardwareGpuScheduling, int? UptimeHours);
 public sealed record ReportDeviceModel(string Bus, string VendorId, string ProductId, string? SubsystemId);
 public sealed record ReportDevice(string Id, string Class, ReportDeviceModel? Model, string? DriverVersion, string? DriverDate, int? ProblemCode);
 public sealed record ReportFinding(string Id, string Source, int EventId, int Count, string FirstSeen, string LastSeen, string Severity, string? DeviceRef);
@@ -95,7 +105,7 @@ public static class RemoteReportBuilder
             State(status.WlanEvents));
 
         return new(ContractRules.ReportSchemaVersion, appVersion, ContractFormat.Uuid(scanId), ContractFormat.Timestamp(end), ContractFormat.Timestamp(start), ContractFormat.Timestamp(end),
-            ContractFormat.IsUuid(previousCaseId) ? previousCaseId : null, symptom, Hardware(snapshot, rules), devices, findings, collection, wow, null);
+            ContractFormat.IsUuid(previousCaseId) ? previousCaseId : null, symptom, Hardware(snapshot, rules), HardwareDetailsProjection.Build(snapshot.Details, rules), devices, findings, collection, wow, null);
     }
 
     /// <summary>Every wire member, including consent (null in a non-sendable draft).</summary>
@@ -133,14 +143,17 @@ public static class RemoteReportBuilder
         return new(build.Length == 0 ? null : build, input.ProblemScope, input.AddonTest);
     }
 
+    /// <summary>Hardware text as sent: null when empty, a vendor placeholder, malformed or hit by a text marker.</summary>
+    internal static string? HardwareText(string? value, ContractRules rules)
+    {
+        var text = (value ?? "").Trim();
+        return text.Length == 0 || ManufacturerRouting.Placeholder(text) || !ContractFormat.IsTechnicalText(text) || rules.HasForbiddenText(text) ? null : text;
+    }
+
     static ReportHardware Hardware(Snapshot snapshot, ContractRules rules)
     {
         var h = snapshot.Hardware;
-        string? Text(string? value)
-        {
-            var text = (value ?? "").Trim();
-            return text.Length == 0 || ManufacturerRouting.Placeholder(text) || !ContractFormat.IsTechnicalText(text) || rules.HasForbiddenText(text) ? null : text;
-        }
+        string? Text(string? value) => HardwareText(value, rules);
         var build = h?.WindowsBuild?.Trim();
         return new(
             Text(snapshot.Windows?.Split(" · ")[0]),
@@ -161,7 +174,7 @@ public static class RemoteReportBuilder
         "DISPLAY" => "display", "NET" => "network", "MEDIA" => "audio", "HDC" => "storage_controller",
         "SCSIADAPTER" => "scsi_adapter", "USB" => "usb", "SYSTEM" => "system", _ => "other"
     };
-    static string? DriverVersion(string? value)
+    internal static string? DriverVersion(string? value)
         => value is { Length: > 0 and <= 40 } && Regex.IsMatch(value, @"\A[0-9]+(\.[0-9]+){0,7}\z", RegexOptions.CultureInvariant) ? value : null;
     static string Severity(int level) => level switch { 1 => "critical", 2 => "error", 3 => "warning", _ => "info" };
     static string State(string? value) => CollectionStates.Contains(value) ? value! : "failed";

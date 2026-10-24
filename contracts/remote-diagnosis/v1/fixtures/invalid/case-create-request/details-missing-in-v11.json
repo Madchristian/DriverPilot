@@ -1,0 +1,45 @@
+{
+  "schema_version": "1.1",
+  "app_version": "0.4.0",
+  "scan_id": "7d3e9b21-6c4a-4f08-9b5e-2a1c0d8e7f63",
+  "scanned_at": "2026-10-03T14:02:11.4821930Z",
+  "observation_start": "2026-10-02T14:02:11Z",
+  "observation_end": "2026-10-03T14:02:11Z",
+  "previous_case_id": null,
+  "symptom": {
+    "category": "performance",
+    "description": "Beim Laufen durch die Spielwelt wird das Bild kurz schwarz, danach ruckelt es einige Sekunden.",
+    "reproduction_steps": null,
+    "occurred_at": null
+  },
+  "hardware": {
+    "windows_version": "Microsoft Windows 11 Pro",
+    "windows_build": "26100",
+    "architecture": "x64",
+    "cpu": "AMD Ryzen 7 3800X 8-Core Processor",
+    "ram_gb": 32,
+    "system_manufacturer": null,
+    "system_model": null,
+    "is_portable": false,
+    "board_manufacturer": "ASUSTeK COMPUTER INC.",
+    "board_model": "ROG STRIX B450-F GAMING",
+    "board_revision": "Rev 1.xx",
+    "bios_version": "5003",
+    "bios_date": "2026-03-18"
+  },
+  "devices": [],
+  "findings": [],
+  "collection": {
+    "hardware": "complete",
+    "devices": "complete",
+    "system_events": "complete",
+    "wlan_events": "unavailable"
+  },
+  "wow": null,
+  "consent": {
+    "privacy_notice_version": "2026-10-01.1",
+    "accepted_at": "2026-10-03T14:06:30Z",
+    "upload_approved": true,
+    "external_ai_allowed": true
+  }
+}

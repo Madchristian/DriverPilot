@@ -21,7 +21,7 @@
     "consent"
   ],
   "properties": {
-    "schema_version": { "enum": ["1.0"] },
+    "schema_version": { "enum": ["1.0", "1.1"] },
     "app_version": { "type": "string", "pattern": "^[0-9]{1,5}(\\.[0-9]{1,5}){2,3}$" },
     "scan_id": {
       "description": "Vom Client je Scan erzeugte UUID.",
@@ -36,6 +36,10 @@
     },
     "symptom": { "$ref": "#/$defs/symptom" },
     "hardware": { "$ref": "#/$defs/hardware" },
+    "hardware_details": {
+      "description": "Ab Version 1.1: Detailangaben zu CPU, Arbeitsspeicher, Grafikkarten, Laufwerken und Plattform. null, wenn die Erfassung insgesamt fehlschlug.",
+      "anyOf": [{ "$ref": "#/$defs/hardware_details" }, { "type": "null" }]
+    },
     "devices": {
       "type": "array",
       "maxItems": 64,
@@ -52,6 +56,14 @@
     },
     "consent": { "$ref": "#/$defs/consent" }
   },
+  "allOf": [
+    {
+      "description": "hardware_details ist ab Version 1.1 Pflicht und in Version 1.0 ein unbekanntes Feld.",
+      "if": { "properties": { "schema_version": { "const": "1.0" } } },
+      "then": { "not": { "required": ["hardware_details"] } },
+      "else": { "required": ["hardware_details"] }
+    }
+  ],
   "$defs": {
     "nullable_technical_text": {
       "anyOf": [{ "$ref": "common.schema.json#/$defs/technical_text" }, { "type": "null" }]
@@ -116,6 +128,144 @@
         "bios_date": {
           "anyOf": [{ "$ref": "common.schema.json#/$defs/date" }, { "type": "null" }]
         }
+      }
+    },
+    "hardware_details": {
+      "description": "Jeder Bereich ist null, wenn er nicht erfasst werden konnte; null ist nie ein unauffälliger Befund. Keine Seriennummern.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["cpu", "memory", "gpus", "storage", "platform"],
+      "properties": {
+        "cpu": { "anyOf": [{ "$ref": "#/$defs/cpu_details" }, { "type": "null" }] },
+        "memory": { "anyOf": [{ "$ref": "#/$defs/memory_details" }, { "type": "null" }] },
+        "gpus": {
+          "anyOf": [{ "type": "array", "maxItems": 4, "items": { "$ref": "#/$defs/gpu" } }, { "type": "null" }]
+        },
+        "storage": { "anyOf": [{ "$ref": "#/$defs/storage_details" }, { "type": "null" }] },
+        "platform": { "anyOf": [{ "$ref": "#/$defs/platform_details" }, { "type": "null" }] }
+      }
+    },
+    "cpu_details": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["cores", "threads", "max_clock_mhz"],
+      "properties": {
+        "cores": { "type": ["integer", "null"], "minimum": 1, "maximum": 1024 },
+        "threads": { "type": ["integer", "null"], "minimum": 1, "maximum": 4096 },
+        "max_clock_mhz": { "description": "Nenntakt laut Windows (Win32_Processor.MaxClockSpeed), kein Boost-Takt.", "type": ["integer", "null"], "minimum": 100, "maximum": 10000 }
+      }
+    },
+    "memory_details": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["slots_total", "modules"],
+      "properties": {
+        "slots_total": { "type": ["integer", "null"], "minimum": 1, "maximum": 64 },
+        "modules": { "type": "array", "maxItems": 32, "items": { "$ref": "#/$defs/memory_module" } }
+      }
+    },
+    "memory_module": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["slot", "capacity_mb", "type", "rated_mts", "configured_mts", "manufacturer", "part_number"],
+      "properties": {
+        "slot": { "description": "Steckplatzbezeichnung des Herstellers, zum Beispiel DIMM_A2.", "$ref": "#/$defs/nullable_technical_text" },
+        "capacity_mb": { "type": ["integer", "null"], "minimum": 1, "maximum": 1048576 },
+        "type": { "enum": ["ddr3", "ddr4", "ddr5", "lpddr4", "lpddr5", "other", null] },
+        "rated_mts": { "description": "Nenngeschwindigkeit des Moduls in MT/s.", "type": ["integer", "null"], "minimum": 1, "maximum": 20000 },
+        "configured_mts": { "description": "Tatsächlich eingestellte Geschwindigkeit in MT/s; liegt sie über dem JEDEC-Standard, ist meist XMP/EXPO aktiv.", "type": ["integer", "null"], "minimum": 1, "maximum": 20000 },
+        "manufacturer": { "$ref": "#/$defs/nullable_technical_text" },
+        "part_number": { "description": "Typnummer des Moduls, keine Seriennummer.", "$ref": "#/$defs/nullable_technical_text" }
+      }
+    },
+    "gpu": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["vendor", "name", "vram_mb", "driver_version", "telemetry"],
+      "properties": {
+        "vendor": { "enum": ["nvidia", "amd", "intel", "other"] },
+        "name": { "$ref": "#/$defs/nullable_technical_text" },
+        "vram_mb": { "type": ["integer", "null"], "minimum": 1, "maximum": 1048576 },
+        "driver_version": {
+          "anyOf": [{ "type": "string", "maxLength": 40, "pattern": "^[0-9]+(\\.[0-9]+){0,7}$" }, { "type": "null" }]
+        },
+        "telemetry": {
+          "description": "Momentaufnahme über nvidia-smi im Moment des Scans; null ohne NVIDIA-Treiber oder wenn nvidia-smi nicht antwortet.",
+          "anyOf": [{ "$ref": "#/$defs/gpu_telemetry" }, { "type": "null" }]
+        }
+      }
+    },
+    "gpu_telemetry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "temperature_c",
+        "fan_percent",
+        "graphics_clock_mhz",
+        "graphics_clock_max_mhz",
+        "memory_clock_mhz",
+        "memory_clock_max_mhz",
+        "power_draw_w",
+        "power_limit_w",
+        "power_limit_default_w",
+        "power_limit_max_w",
+        "pcie_gen_current",
+        "pcie_gen_max",
+        "pcie_width_current",
+        "pcie_width_max"
+      ],
+      "properties": {
+        "temperature_c": { "type": ["integer", "null"], "minimum": 0, "maximum": 150 },
+        "fan_percent": { "type": ["integer", "null"], "minimum": 0, "maximum": 100 },
+        "graphics_clock_mhz": { "type": ["integer", "null"], "minimum": 0, "maximum": 10000 },
+        "graphics_clock_max_mhz": { "type": ["integer", "null"], "minimum": 0, "maximum": 10000 },
+        "memory_clock_mhz": { "type": ["integer", "null"], "minimum": 0, "maximum": 50000 },
+        "memory_clock_max_mhz": { "type": ["integer", "null"], "minimum": 0, "maximum": 50000 },
+        "power_draw_w": { "type": ["integer", "null"], "minimum": 0, "maximum": 2000 },
+        "power_limit_w": { "type": ["integer", "null"], "minimum": 0, "maximum": 2000 },
+        "power_limit_default_w": { "type": ["integer", "null"], "minimum": 0, "maximum": 2000 },
+        "power_limit_max_w": { "type": ["integer", "null"], "minimum": 0, "maximum": 2000 },
+        "pcie_gen_current": { "description": "Im Leerlauf schaltet die Karte die PCIe-Generation oft herunter.", "type": ["integer", "null"], "minimum": 1, "maximum": 8 },
+        "pcie_gen_max": { "type": ["integer", "null"], "minimum": 1, "maximum": 8 },
+        "pcie_width_current": { "type": ["integer", "null"], "minimum": 1, "maximum": 32 },
+        "pcie_width_max": { "type": ["integer", "null"], "minimum": 1, "maximum": 32 }
+      }
+    },
+    "storage_details": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["system_size_gb", "system_free_gb", "pagefile_mb", "disks"],
+      "properties": {
+        "system_size_gb": { "description": "Größe des Systemlaufwerks.", "type": ["integer", "null"], "minimum": 0, "maximum": 1048576 },
+        "system_free_gb": { "type": ["integer", "null"], "minimum": 0, "maximum": 1048576 },
+        "pagefile_mb": { "description": "Aktuell zugewiesene Auslagerungsdatei; null, wenn keine eingerichtet ist oder sie nicht lesbar war.", "type": ["integer", "null"], "minimum": 0, "maximum": 1048576 },
+        "disks": { "type": "array", "maxItems": 16, "items": { "$ref": "#/$defs/disk" } }
+      }
+    },
+    "disk": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["model", "media", "bus", "size_gb", "health", "firmware", "system_disk"],
+      "properties": {
+        "model": { "$ref": "#/$defs/nullable_technical_text" },
+        "media": { "enum": ["ssd", "hdd", "unspecified"] },
+        "bus": { "enum": ["nvme", "sata", "usb", "sas", "raid", "other"] },
+        "size_gb": { "type": ["integer", "null"], "minimum": 0, "maximum": 1048576 },
+        "health": { "description": "Zustand laut Windows (Get-PhysicalDisk.HealthStatus), keine eigene SMART-Auswertung.", "enum": ["healthy", "warning", "unhealthy", "unknown"] },
+        "firmware": { "$ref": "#/$defs/nullable_technical_text" },
+        "system_disk": { "type": ["boolean", "null"] }
+      }
+    },
+    "platform_details": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["firmware_mode", "secure_boot", "power_plan", "hardware_gpu_scheduling", "uptime_hours"],
+      "properties": {
+        "firmware_mode": { "enum": ["uefi", "legacy", null] },
+        "secure_boot": { "type": ["boolean", "null"] },
+        "power_plan": { "description": "Aktiver Energiesparplan als Windows-Standardplan; custom für jeden eigenen Plan, dessen Name nie gesendet wird.", "enum": ["balanced", "high_performance", "power_saver", "ultimate_performance", "custom", null] },
+        "hardware_gpu_scheduling": { "description": "Hardwarebeschleunigte GPU-Planung (HwSchMode).", "type": ["boolean", "null"] },
+        "uptime_hours": { "type": ["integer", "null"], "minimum": 0, "maximum": 100000 }
       }
     },
     "device_model": {

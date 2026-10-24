@@ -1,0 +1,131 @@
+{
+  "schema_version": "1.1",
+  "app_version": "0.4.0",
+  "scan_id": "7d3e9b21-6c4a-4f08-9b5e-2a1c0d8e7f63",
+  "scanned_at": "2026-10-03T14:02:11.4821930Z",
+  "observation_start": "2026-10-02T14:02:11Z",
+  "observation_end": "2026-10-03T14:02:11Z",
+  "previous_case_id": null,
+  "symptom": {
+    "category": "performance",
+    "description": "Beim Laufen durch die Spielwelt wird das Bild kurz schwarz, danach ruckelt es einige Sekunden.",
+    "reproduction_steps": null,
+    "occurred_at": null
+  },
+  "hardware": {
+    "windows_version": "Microsoft Windows 11 Pro",
+    "windows_build": "26100",
+    "architecture": "x64",
+    "cpu": "AMD Ryzen 7 3800X 8-Core Processor",
+    "ram_gb": 32,
+    "system_manufacturer": null,
+    "system_model": null,
+    "is_portable": false,
+    "board_manufacturer": "ASUSTeK COMPUTER INC.",
+    "board_model": "ROG STRIX B450-F GAMING",
+    "board_revision": "Rev 1.xx",
+    "bios_version": "5003",
+    "bios_date": "2026-03-18"
+  },
+  "hardware_details": {
+    "cpu": {
+      "cores": 8,
+      "threads": 16,
+      "max_clock_mhz": 3900
+    },
+    "memory": {
+      "slots_total": 4,
+      "modules": [
+        {
+          "slot": "DIMM_A2",
+          "capacity_mb": 16384,
+          "type": "ddr4",
+          "rated_mts": 2133,
+          "configured_mts": 3600,
+          "manufacturer": "G Skill Intl",
+          "part_number": "F4-3600C16-16GVKC"
+        },
+        {
+          "slot": "DIMM_B2",
+          "capacity_mb": 16384,
+          "type": "ddr4",
+          "rated_mts": 2133,
+          "configured_mts": 3600,
+          "manufacturer": "G Skill Intl",
+          "part_number": "F4-3600C16-16GVKC"
+        }
+      ]
+    },
+    "gpus": [
+      {
+        "vendor": "nvidia",
+        "name": "NVIDIA GeForce RTX 3070",
+        "vram_mb": 8192,
+        "driver_version": "32.0.15.6094",
+        "telemetry": {
+          "temperature_c": 48,
+          "fan_percent": 30,
+          "graphics_clock_mhz": 210,
+          "graphics_clock_max_mhz": 2100,
+          "memory_clock_mhz": 405,
+          "memory_clock_max_mhz": 7001,
+          "power_draw_w": 21,
+          "power_limit_w": 220,
+          "power_limit_default_w": 220,
+          "power_limit_max_w": 240,
+          "pcie_gen_current": 1,
+          "pcie_gen_max": 3,
+          "pcie_width_current": 16,
+          "pcie_width_max": 16
+        }
+      }
+    ],
+    "storage": {
+      "system_size_gb": 930,
+      "system_free_gb": 112,
+      "pagefile_mb": 4864,
+      "disks": [
+        {
+          "model": "Samsung SSD 970 EVO Plus 1TB",
+          "media": "ssd",
+          "bus": "nvme",
+          "size_gb": 932,
+          "health": "healthy",
+          "firmware": "2B2QEXM7",
+          "system_disk": true
+        },
+        {
+          "model": "ST2000DM008-2FR102",
+          "media": "hdd",
+          "bus": "sata",
+          "size_gb": 1863,
+          "health": "healthy",
+          "firmware": "0001",
+          "system_disk": false
+        }
+      ]
+    },
+    "platform": {
+      "firmware_mode": "uefi",
+      "secure_boot": true,
+      "power_plan": "balanced",
+      "hardware_gpu_scheduling": true,
+      "uptime_hours": 5
+    }
+  },
+  "devices": [],
+  "findings": [],
+  "collection": {
+    "hardware": "complete",
+    "devices": "complete",
+    "system_events": "complete",
+    "wlan_events": "unavailable"
+  },
+  "wow": null,
+  "consent": {
+    "privacy_notice_version": "2026-10-01.1",
+    "accepted_at": "2026-10-03T14:06:30Z",
+    "upload_approved": true,
+    "external_ai_allowed": true
+  }
+}

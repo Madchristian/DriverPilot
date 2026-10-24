@@ -121,6 +121,7 @@ Zielhost des Servers ist ein Raspberry Pi 4 mit 4 GB RAM. Der Vertrag ist darauf
 - `protocol_version` und `schema_version` haben die Form `Major.Minor`. Der Server nimmt nur die in `/capabilities` genannten Berichtsversionen an.
 - Jede Änderung an Schemas, Fehlercodes, Zuständen oder Regeln ist eine Vertragsänderung: zuerst hier per Pull Request abstimmen, dann implementieren. Keine stillen Anpassungen in Client oder Server.
 - Neue Felder oder Enum-Werte brauchen eine neue Minor-Version, weil unbekannte Felder abgelehnt werden. Inkompatible Änderungen bekommen ein neues Verzeichnis `v2/`.
+- **Version 1.1** ergänzt `hardware_details` (CPU, Arbeitsspeicher, Grafikkarten samt `nvidia-smi`-Momentaufnahme, Laufwerke, Plattform). In 1.1 ist das Feld Pflicht, in 1.0 unbekannt; beide Versionen teilen sich ein Schema (`allOf` mit `if`/`then`). Ein Server, der 1.1 annimmt, nimmt weiter 1.0 an, bis kein Client mehr 1.0 sendet. Die Textmarker gelten auch für die neuen Textfelder; ihre Zeiger nutzen `*` für Array-Elemente (`rules.json`, `pointer_syntax`).
 
 ## Festlegungen, die Issue #19 offen lässt
 
